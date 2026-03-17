@@ -1,22 +1,44 @@
 import { useState, useRef, useEffect } from "react";
 
-const SYSTEM_PROMPT = `You are an embedded Clinical Decision Support System (CDSS) assisting a physician during a patient consultation. Your role is to support — not replace — clinical judgment.
+const DEMO_RESPONSE = `**History Questions to Ask**
+- Onset: When did it start? Was it sudden or gradual?
+- Character: Can you describe the pain/symptom?
+- Radiation: Does it go anywhere else?
+- Associated symptoms: Any nausea, vomiting, sweating, fever?
+- Timing: Constant or comes and goes?
+- Exacerbating/relieving factors: What makes it better or worse?
+- Severity: Score 1-10
 
-Given the presenting complaint, you will provide structured clinical guidance using the framework:
-1. SOCRATES pain/symptom analysis questions (if relevant)
-2. Key history questions to ask (grouped by system)
-3. ICE — Ideas, Concerns, Expectations to explore
-4. Past medical/surgical/drug/allergy/family/social history prompts (MAFTOSA)
-5. Red flag symptoms to actively rule out
-6. Top 3-5 differential diagnoses (most likely first)
-7. Suggested examination findings to look for
-8. Safety netting advice for the patient
+**System Review**
+- Cardiovascular: Palpitations, chest pain, leg swelling?
+- Respiratory: Shortness of breath, cough, wheeze?
+- GI: Nausea, vomiting, bowel changes?
+- Neurological: Headache, dizziness, visual changes?
 
-Keep responses concise, clinically precise, and practical. Use UK clinical guidelines (NICE) as the reference standard. Format with clear section headers. Think like a senior GP or A&E registrar.
+**ICE**
+- Ideas: What do you think is causing this?
+- Concerns: Is there anything specific worrying you?
+- Expectations: What were you hoping we could do today?
 
-When asked follow-up questions mid-consultation, update your differentials and flag any changes to red flag status immediately.
+**Past History (MAFTOSA)**
+- Medications, Allergies, Family history, Travel, Occupation, Social history, Alcohol/smoking
 
-Always end with: "⚠️ Red Flags to Rule Out:" section even if none are triggered.`;
+**Top Differentials**
+1. Most likely diagnosis based on presentation
+2. Second differential to consider
+3. Third differential — rule out
+
+**Examination**
+- Observations: BP, HR, RR, Temp, O2 sats
+- Focused examination based on complaint
+- Specific signs to look for
+
+⚠️ Red Flags to Rule Out:
+- Haemodynamic instability
+- Altered consciousness
+- Signs of sepsis
+- Acute surgical abdomen
+- Sudden onset severe symptoms`;
 
 const SUGGESTIONS = [
   "Chest pain", "Shortness of breath", "Abdominal pain", "Headache",
@@ -43,34 +65,18 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const callClaude = async (msgs) => {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.REACT_APP_ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-allow-browser": "true"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: msgs
-      })
-    });
-    const data = await res.json();
-    return data.content?.[0]?.text || "No response received.";
+  const simulate = async () => {
+    await new Promise(r => setTimeout(r, 2000));
+    return DEMO_RESPONSE;
   };
 
   const startSession = async () => {
     if (!complaint.trim()) return;
     setLoading(true);
     setSessionStarted(true);
-    const userMsg = { role: "user", content: `Presenting complaint: ${complaint}` };
     setMessages([{ type: "complaint", text: complaint }]);
     try {
-      const reply = await callClaude([userMsg]);
+      const reply = await simulate();
       setMessages([
         { type: "complaint", text: complaint },
         { type: "assistant", text: reply }
@@ -89,22 +95,9 @@ export default function App() {
     const userText = input.trim();
     setInput("");
     setLoading(true);
-
-    const history = [];
-    for (const m of messages) {
-      if (m.type === "complaint") history.push({ role: "user", content: `Presenting complaint: ${m.text}` });
-      else if (m.type === "assistant") history.push({ role: "assistant", content: m.text });
-      else if (m.type === "user") history.push({ role: "user", content: m.text });
-    }
-    history.push({ role: "user", content: userText });
     setMessages(prev => [...prev, { type: "user", text: userText }]);
-
-    try {
-      const reply = await callClaude(history);
-      setMessages(prev => [...prev, { type: "assistant", text: reply }]);
-    } catch (e) {
-      setMessages(prev => [...prev, { type: "error", text: "Connection error." }]);
-    }
+    await new Promise(r => setTimeout(r, 1500));
+    setMessages(prev => [...prev, { type: "assistant", text: DEMO_RESPONSE }]);
     setLoading(false);
     inputRef.current?.focus();
   };
@@ -197,6 +190,7 @@ export default function App() {
         .send-btn:hover:not(:disabled) { background: linear-gradient(135deg, #204faa, #1a3a7a); }
         .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .input-hint { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #1e3a5f; text-align: center; margin-top: 8px; letter-spacing: 1px; }
+        .demo-banner { background: #1a2a0a; border: 1px solid #4a7a20; border-radius: 6px; padding: 8px 16px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #88cc44; letter-spacing: 1px; margin-bottom: 16px; }
       `}</style>
 
       <div className="app">
@@ -227,10 +221,11 @@ export default function App() {
                   {loading ? "Analysing..." : "Start Consultation →"}
                 </button>
               </div>
-              <p className="disclaimer">⚕ For physician use only. This tool supports — it does not replace — clinical judgment.</p>
+              <p className="disclaimer">⚕ For physician use only. This tool supports — it does not replace — clinical judgment. · Demo version — DM for full access.</p>
             </div>
           ) : (
             <div className="session">
+              <div className="demo-banner">⚡ DEMO MODE — DM @drankit for full AI-powered access</div>
               <div className="messages">
                 {messages.map((m, i) => {
                   if (m.type === "complaint") return <div key={i} className="msg-complaint"><div className="msg-complaint-label">Presenting Complaint</div><div className="msg-complaint-text">{m.text}</div></div>;
