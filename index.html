@@ -1,1 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDSS — Offline Clinical Decision Support</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F4F6F8;--card:#fff;--bdr:#DFE3E8;--focus:#0891B2;--pri:#0E7490;--priDk:#155E75;--acc:#F59E0B;--red:#DC2626;--grn:#059669;--purple:#7C3AED;--txt:#111827;--mid:#4B5563;--lt:#9CA3AF}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--txt)}
+.header{padding:14px 20px;background:linear-gradient(135deg,#0C4A6E,#155E75);color:#fff;display:flex;align-items:center;gap:12px}
+.hico{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px}
+.mtabs{display:flex;background:var(--card);border-bottom:2px solid var(--bdr);padding:0 12px;overflow-x:auto}
+.mtab{padding:10px 16px;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;border-bottom:3px solid transparent;background:none;font-weight:500;color:var(--mid);font-size:13px;display:flex;align-items:center;gap:6px}
+.mtab.a{font-weight:700;color:var(--pri);border-bottom-color:var(--pri)}
+.mdesc{padding:10px 20px;background:#F8FAFC;border-bottom:1px solid #EEF0F2;font-size:13px;color:var(--lt)}
+.ct{padding:16px 20px;max-width:740px;margin:0 auto}
+.lbl{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-bottom:4px}.lsub{font-weight:400;color:var(--lt);margin-left:6px}
+.fld{margin-bottom:12px}
+input[type=text],input[type=number],textarea,select{width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid var(--bdr);font-size:14px;outline:none;background:#FAFBFC;font-family:inherit}
+input:focus,textarea:focus,select:focus{border-color:var(--focus);background:#fff}textarea{resize:vertical}select{cursor:pointer}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.sec{background:var(--card);border-radius:12px;border:1px solid var(--bdr);margin-bottom:10px;overflow:hidden}
+.sh{width:100%;display:flex;align-items:center;gap:10px;padding:13px 16px;border:none;cursor:pointer;background:var(--card);text-align:left;font-family:inherit}
+.sh.o{border-bottom:1px solid var(--bdr)}.st{flex:1;font-weight:700;font-size:14px;color:var(--txt)}
+.sb{padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.btn{padding:11px 24px;border-radius:10px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;border:none;transition:all .2s;color:#fff}
+.btn:disabled{cursor:not-allowed;opacity:.5}
+.bp{background:linear-gradient(135deg,var(--pri),var(--priDk));box-shadow:0 3px 12px rgba(14,116,144,.35)}
+.bo{background:#fff;color:var(--pri);border:2px solid var(--pri)}
+.bpu{background:linear-gradient(135deg,var(--purple),#6D28D9);box-shadow:0 3px 12px rgba(124,58,237,.3)}
+.bg{background:linear-gradient(135deg,var(--grn),#047857);box-shadow:0 3px 12px rgba(5,150,105,.3)}
+.res{background:var(--card);border-radius:12px;border:1px solid var(--bdr);padding:20px;font-size:14px;line-height:1.8;margin-top:16px}
+.ehr{background:#1E293B;border-radius:12px;padding:20px;font-family:'DM Mono',monospace;font-size:13px;line-height:1.75;color:#E2E8F0;white-space:pre-wrap}
+.empty{text-align:center;padding:50px 20px;color:var(--lt)}
+.tag{padding:6px 14px;border-radius:20px;font-size:13px;border:none;cursor:pointer;font-family:inherit;margin:0 4px 5px 0;transition:all .15s}
+.tag.on{background:var(--pri);color:#fff;font-weight:700}.tag:not(.on){background:#F1F3F5;color:var(--mid)}
+.pill{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;font-size:13px;margin:3px 4px 3px 0;font-weight:500}
+.chip .x{cursor:pointer;opacity:.5;font-size:14px}.chip .x:hover{opacity:1}
+.sev-major{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+.sev-mod{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+.sev-minor{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0}
+.calc-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;border:1.5px solid #E2E8F0;cursor:pointer;font-size:14px;margin-bottom:5px;background:#FAFAFA}
+.calc-item.on{background:#F0FDFA;border-color:var(--pri)}
+.cathead{font-weight:700;font-size:13px;color:var(--mid);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+.footer{padding:16px 20px;background:#0F172A;color:#64748B;font-size:11px;line-height:1.6;text-align:center;border-top:1px solid #1E293B}
+.footer a{color:#0E7490;text-decoration:none}.footer a:hover{text-decoration:underline}
+.footer strong{color:#94A3B8}
+.watermark{position:fixed;bottom:8px;right:12px;font-size:10px;color:rgba(0,0,0,.08);font-weight:800;letter-spacing:.05em;pointer-events:none;z-index:999}
+.license-bar{padding:8px 20px;background:#FFFBEB;border-bottom:1px solid #FDE68A;font-size:11px;color:#92400E;text-align:center;cursor:pointer}
+.license-bar:hover{background:#FEF3C7}
+.license-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center;padding:20px}
+.license-modal.show{display:flex}
+.license-box{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:28px 24px;position:relative}
+.license-box h2{font-size:18px;margin-bottom:12px;color:#0F172A}
+.license-box p{font-size:13px;line-height:1.7;color:#4B5563;margin-bottom:10px}
+.license-box .close{position:absolute;top:12px;right:16px;font-size:22px;cursor:pointer;color:#9CA3AF;border:none;background:none}
+.brand-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:12px;background:rgba(14,116,144,.08);font-size:10px;font-weight:700;color:#0E7490;letter-spacing:.03em}
 
+/* ─── MOBILE RESPONSIVE ─────────────────────────── */
+@media(max-width:600px){
+  .header{padding:12px 14px;gap:10px}
+  .header .hico{width:32px;height:32px;font-size:16px}
+  .header div:nth-child(2)>div:first-child{font-size:15px}
+  .header div:nth-child(2)>div:last-child{font-size:10px}
+  .header>div:last-child{display:none}
+  .license-bar{font-size:10px;padding:6px 14px}
+  .brand-badge{font-size:9px;padding:2px 8px}
+  .footer{padding:12px 14px;font-size:10px}
+  .watermark{font-size:8px;bottom:4px;right:8px}
+  .license-box{padding:20px 16px;margin:10px}
+  .license-box h2{font-size:16px}
+  .license-box p{font-size:12px}
+  .mtabs{padding:0 4px;gap:0}
+  .mtab{padding:9px 10px;font-size:12px;gap:4px}
+  .mtab span{font-size:13px!important}
+  .mdesc{padding:8px 14px;font-size:12px}
+  .ct{padding:12px 14px}
+  .g2{grid-template-columns:1fr}
+  .demo-bar.g2{grid-template-columns:1fr 1fr}
+  .tag{padding:8px 16px;font-size:14px;margin:0 4px 6px 0}
+  .chip{padding:6px 14px;font-size:14px;margin:4px 4px 4px 0}
+  .chip .x{font-size:18px;padding:0 4px}
+  .btn{width:100%;padding:14px 24px;font-size:15px;text-align:center}
+  .res{padding:14px;font-size:13px;line-height:1.7;margin-top:12px}
+  .ehr{padding:14px;font-size:12px;line-height:1.6;overflow-x:auto}
+  .calc-item{padding:12px 14px;font-size:14px;gap:8px}
+  .calc-item input{width:20px;height:20px}
+  input[type=text],input[type=number],textarea,select{font-size:16px;padding:12px 14px}
+  .lbl{font-size:13px;margin-bottom:6px}
+  .fld{margin-bottom:14px}
+  .pill{font-size:10px}
+  /* Demo bar stacking */
+  .g2>div{min-width:0}
+  /* Symptom/drug picker scroll area */
+  div[style*="max-height:220px"]{max-height:180px!important}
+  /* Interpretation box */
+  div[style*="display:flex;align-items:center;gap:18px"]{flex-direction:column;text-align:center;gap:12px!important}
+  /* Button row stacking */
+  .action-row{flex-direction:column!important}
+  div[style*="display:flex;gap:10px;margin-bottom:16px"]{flex-direction:column}
+  /* Result cards */
+  .res div[style*="display:flex;align-items:center;justify-content:space-between"]{flex-wrap:wrap;gap:6px}
+  /* EHR section buttons */
+  .res+div>div[style*="display:flex;align-items:center;justify-content:space-between"]{flex-wrap:wrap;gap:8px}
+  /* Severity cards padding */
+  .sev-major,.sev-mod,.sev-minor{padding:14px}
+  /* Scrollable tabs */
+  .mtabs{-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .mtabs::-webkit-scrollbar{display:none}
+}
+
+/* Tablet */
+@media(min-width:601px) and (max-width:900px){
+  .ct{padding:16px 16px;max-width:100%}
+  .tag{padding:7px 14px}
+}
+
+/* Touch improvements */
+@media(hover:none){
+  .tag{min-height:40px;display:inline-flex;align-items:center}
+  .calc-item{min-height:48px}
+  .chip{min-height:36px}
+  .btn{min-height:48px}
+}
+</style>
+</head>
+<body>
+<!-- 
+  ╔═══════════════════════════════════════════════════════════════════════╗
+  ║  CDSS — Clinical Decision Support System                            ║
+  ║  © 2026 Dr. Ankit Lokare. All rights reserved.                             ║
+  ║                                                                     ║
+  ║  LICENSE: Free for individual, non-commercial clinical use.          ║
+  ║  Commercial use, redistribution, modification, or resale of this    ║
+  ║  software or its databases requires a paid commercial license.      ║
+  ║  Contact: [Your Email] for licensing enquiries.                     ║
+  ║                                                                     ║
+  ║  This tool is decision support only and does not replace clinical   ║
+  ║  judgement. The author accepts no liability for clinical decisions.  ║
+  ╚═══════════════════════════════════════════════════════════════════════╝
+-->
+<div class="header">
+  <div class="hico">⚕</div>
+  <div style="flex:1">
+    <div style="font-weight:800;font-size:17px">CDSS <span class="brand-badge">by Dr. Ankit Lokare</span></div>
+    <div style="font-size:11px;opacity:.7">Clinical Decision Support · BNF Integrated · General Practice</div>
+  </div>
+  <div style="padding:5px 12px;border-radius:16px;background:rgba(255,255,255,.12);font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#22C55E"></span>Fully Offline</div>
+</div>
+<div class="license-bar" onclick="document.getElementById('licenseModal').classList.add('show')">
+  📄 Free for individual clinical use · Commercial license required for organisations · <strong>View license</strong>
+</div>
+<div class="mtabs" id="mt"></div>
+<div class="mdesc" id="md"></div>
+<div class="ct" id="app"></div>
+
+<!-- Footer -->
+<div class="footer">
+  <strong>CDSS — Clinical Decision Support System</strong><br>
+  © 2026 Dr. Ankit Lokare. All rights reserved.<br>
+  Free for individual, non-commercial clinical use. Commercial use requires a <a href="#" onclick="event.preventDefault();document.getElementById('licenseModal').classList.add('show')">paid license</a>.<br>
+  Decision support only — does not replace clinical judgement.<br>
+  <a href="https://www.linkedin.com/in/ankit-lokare-6547b5183" target="_blank">LinkedIn</a> · Built with evidence-based clinical data
+</div>
+
+<!-- Watermark -->
+<div class="watermark">CDSS by Dr. Ankit Lokare</div>
+
+<!-- License Modal -->
+<div class="license-modal" id="licenseModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="license-box">
+    <button class="close" onclick="document.getElementById('licenseModal').classList.remove('show')">&times;</button>
+    <h2>⚕ CDSS License Agreement</h2>
+    <p><strong>© 2026 Dr. Ankit Lokare. All rights reserved.</strong></p>
+    <p><strong>1. Individual Clinical Use (FREE)</strong><br>
+    Licensed doctors, medical students, and healthcare professionals may use this tool free of charge for individual clinical decision support in their personal practice. No registration required.</p>
+    <p><strong>2. Commercial Use (PAID LICENSE REQUIRED)</strong><br>
+    The following require a separate commercial license agreement:<br>
+    • Use by hospitals, clinics, or healthcare organisations<br>
+    • Integration into any commercial product or service<br>
+    • Redistribution, resale, or sublicensing<br>
+    • Modification and creation of derivative works for commercial purposes<br>
+    • Use in any revenue-generating application</p>
+    <p><strong>3. Prohibited</strong><br>
+    • Copying, reverse-engineering, or extracting the clinical databases<br>
+    • Removing or modifying copyright notices, branding, or attribution<br>
+    • Claiming authorship or misrepresenting the origin of this work<br>
+    • Using the tool or its data to train AI/ML models without permission</p>
+    <p><strong>4. Clinical Disclaimer</strong><br>
+    This tool is for decision support only. It does not constitute medical advice and does not replace clinical judgement. The author accepts no liability for clinical decisions made using this tool. All clinical data should be verified against current BNF, NICE, and local guidelines.</p>
+    <p><strong>5. Contact</strong><br>
+    For commercial licensing, feedback, or collaboration:<br><a href="https://www.linkedin.com/in/ankit-lokare-6547b5183" target="_blank" style="color:#0E7490">Connect with Dr. Ankit Lokare on LinkedIn</a></p>
+    <p style="margin-top:16px;padding-top:12px;border-top:1px solid #E5E7EB;font-size:11px;color:#9CA3AF;">
+    Version 1.0 · Database: ${new Date().toLocaleDateString('en-IN')} · 55 conditions · 80 drugs · 65 interactions · 6 risk calculators
+    </p>
+  </div>
+</div>
+
+<script>
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║  CDSS — Clinical Decision Support System                    ║
+// ║  © 2026 Dr. Ankit Lokare. All rights reserved.                     ║
+// ║                                                             ║
+// ║  Free for individual clinical use only.                     ║
+// ║  Commercial use, redistribution, or modification requires   ║
+// ║  a paid license. Contact via LinkedIn for enquiries.        ║
+// ║                                                             ║
+// ║  Copying or extracting the clinical databases is            ║
+// ║  prohibited under the license terms.                        ║
+// ╚═══════════════════════════════════════════════════════════════╝
+console.log('%c⚕ CDSS by Dr. Ankit Lokare — © 2026 All Rights Reserved','font-size:16px;font-weight:bold;color:#0E7490');
+console.log('%cFree for individual clinical use. Commercial use requires a paid license.','font-size:12px;color:#64748B');
+console.log('%cCopying or extracting databases is prohibited under the license terms.','font-size:12px;color:#DC2626');
+
+// ═══════════════════════════════════════════════════════════════════════
+// SYMPTOM MASTER LIST (~110 symptoms)
+// ═══════════════════════════════════════════════════════════════════════
+const SYMPTOMS=["Fatigue","Fever","Cough","Productive cough","Dry cough","Barking cough","Sore throat","Hoarse voice","Headache","Dizziness","Chest pain","Palpitations","Shortness of breath","Wheezing","Nausea","Vomiting","Abdominal pain","Epigastric pain","RIF pain","LIF pain","Diarrhoea","Bloody diarrhoea","Constipation","Bloating","Heartburn","Dysphagia","Weight loss","Weight gain","Loss of appetite","Back pain","Joint pain","Muscle pain","Widespread pain","Neck stiffness","Rash","Itching","Swelling legs","Frequent urination","Painful urination","Blood in urine","Urinary urgency","Urinary incontinence","Insomnia","Anxiety","Low mood","Mood swings","Difficulty concentrating","Excessive thirst","Blurred vision","Visual field loss","Floaters","Night sweats","Pallor","Bruising easily","Bleeding gums","Tremor","Numbness/tingling","Weakness one side","Slurred speech","Confusion","Memory problems","Snoring","Daytime sleepiness","Runny nose","Nasal congestion","Nosebleed","Ear pain","Hearing loss","Tinnitus","Eye redness","Photophobia","Eye pain","Haemoptysis","Orthopnoea","PND","Claudication","Oedema","Rectal bleeding","Melaena","Haematemesis","Jaundice","Dark urine","Pale stools","Lump in neck","Lump in breast","Breast pain","Abdominal distension","Vaginal discharge","Vaginal bleeding","Irregular periods","Heavy periods","Pelvic pain","Hot flushes","Erectile dysfunction","Testicular pain","Testicular swelling","Dyspareunia","Calf pain","Calf swelling","Facial pain","Facial weakness","Vertigo","Dry eyes","Dry mouth","Hair loss","Nail changes","Skin ulcer","Wheals/hives","Blistering rash","Acne","Excessive sweating","Cold intolerance","Heat intolerance","Stridor","Difficulty swallowing","Blood in stool","Flank pain","Reduced urine output","Seizures","Loss of consciousness","Chest tightness","Steatorrhoea","Elbow pain","Heel pain","Shoulder pain","Shoulder tip pain","Wrist pain","Hand tingling at night","Perineal pain","Urethral discharge","Flashbacks","Compulsive behaviours","Hyperactivity","Racing thoughts","Alcohol craving","Spider naevi","Pleuritic chest pain","Finger clubbing","Red eye with pain","Eye discharge","Bilateral leg weakness"].sort();
+
+// ═══════════════════════════════════════════════════════════════════════
+// DISEASE-SYMPTOM DATABASE (~55 conditions)
+// ═══════════════════════════════════════════════════════════════════════
+const DISEASES=[
+// ─── HAEMATOLOGY ─────────────────
+{name:"Iron Deficiency Anaemia",cat:"Haematology",symptoms:{Fatigue:3,Pallor:3,"Shortness of breath":2,Palpitations:2,Dizziness:2,"Loss of appetite":1,Headache:1,"Bruising easily":1,"Hair loss":1,"Nail changes":1},redFlags:["Haemoptysis","Weight loss","Rectal bleeding","Melaena"],firstLine:"Ferrous sulphate 200mg TDS (BNF: 65mg elemental iron/tab). Take on empty stomach with vitamin C. Review FBC 2-4 wks.",investigations:"FBC, ferritin, iron studies, reticulocytes. Coeliac screen, stool occult blood if >50y. Consider OGD/colonoscopy if unexplained."},
+{name:"Vitamin B12 Deficiency",cat:"Haematology",symptoms:{Fatigue:3,Pallor:2,"Numbness/tingling":3,Dizziness:2,"Difficulty concentrating":2,"Memory problems":2,"Low mood":1},redFlags:["Confusion","Weakness one side","Seizures"],firstLine:"Dietary: Cyanocobalamin 50-150mcg daily PO. Pernicious anaemia: Hydroxocobalamin 1mg IM alternate days x2wk, then 3-monthly.",investigations:"FBC, B12, folate, methylmalonic acid, anti-intrinsic factor Ab, reticulocytes."},
+{name:"Folate Deficiency",cat:"Haematology",symptoms:{Fatigue:3,Pallor:2,Dizziness:1,"Numbness/tingling":1,"Low mood":1},redFlags:["Confusion"],firstLine:"Folic acid 5mg daily for 4 months (BNF). Investigate cause — diet, malabsorption, drugs (methotrexate/phenytoin).",investigations:"FBC, serum folate, red cell folate, B12 (always check B12 before treating folate)."},
+
+// ─── ENDOCRINE ───────────────────
+{name:"Type 2 Diabetes Mellitus",cat:"Endocrine",symptoms:{"Excessive thirst":3,"Frequent urination":3,Fatigue:2,"Blurred vision":2,"Weight loss":2,"Numbness/tingling":1},redFlags:["Confusion","Vomiting","Shortness of breath"],firstLine:"Metformin 500mg OD, titrate to 1g BD over 4wk (BNF). HbA1c target <48mmol/mol. Lifestyle: diet + exercise. If HbA1c >58: consider dual therapy.",investigations:"HbA1c, fasting glucose, renal function, lipids, urine ACR, retinal screening, foot check."},
+{name:"Hypothyroidism",cat:"Endocrine",symptoms:{Fatigue:3,"Weight gain":3,Constipation:2,"Cold intolerance":3,"Difficulty concentrating":2,"Dry skin":1,"Muscle pain":1,"Low mood":1,Oedema:1,"Hair loss":2},redFlags:["Confusion","Neck stiffness","Myxoedema coma"],firstLine:"Levothyroxine 25-50mcg OD (25mcg if elderly/cardiac). Empty stomach 30min before food. Titrate 25mcg q4-6wk. Target TSH 0.5-2.5.",investigations:"TSH, free T4, anti-TPO antibodies, lipid profile."},
+{name:"Hyperthyroidism",cat:"Endocrine",symptoms:{Palpitations:3,Tremor:3,"Weight loss":3,Anxiety:2,"Heat intolerance":3,Diarrhoea:1,Insomnia:1,"Eye redness":1,"Excessive sweating":2},redFlags:["Confusion","Fever","Chest pain","AF"],firstLine:"Carbimazole 15-40mg daily, titrate on TFTs 4-6wk. Propranolol 40mg BD-TDS for symptoms. Warn: sore throat → urgent FBC (agranulocytosis).",investigations:"TSH, free T4, free T3, TSH receptor Ab, thyroid uptake scan."},
+{name:"Vitamin D Deficiency",cat:"Endocrine",symptoms:{Fatigue:2,"Muscle pain":2,"Back pain":1,"Low mood":1,"Bone pain":2},redFlags:["Pathological fracture"],firstLine:"Loading: Colecalciferol 20,000-40,000 IU/wk for 7wk (BNF) or 50,000 IU weekly x6. Maintenance: 800-2000 IU daily. Check calcium.",investigations:"25-OH vitamin D, calcium, PTH, phosphate, ALP."},
+{name:"PCOS",cat:"Endocrine",symptoms:{"Irregular periods":3,Acne:2,"Weight gain":2,"Hair loss":1,"Excessive sweating":1},redFlags:["Virilisation","Rapid onset"],firstLine:"Lifestyle: weight loss 5-10%. Menstrual regulation: COCP. Hirsutism: Co-cyprindiol. Metformin if insulin resistant. Fertility: Letrozole first-line.",investigations:"Testosterone, SHBG, LH, FSH, prolactin, TFTs, HbA1c, lipids, pelvic USS."},
+
+// ─── RESPIRATORY ─────────────────
+{name:"Community-Acquired Pneumonia",cat:"Respiratory",symptoms:{Fever:3,Cough:3,"Productive cough":3,"Shortness of breath":2,"Chest pain":2,Fatigue:2,"Night sweats":1,Haemoptysis:1},redFlags:["Confusion","Haemoptysis","Cyanosis"],firstLine:"CURB-65 0-1: Amoxicillin 500mg TDS x5d. Penicillin allergy: Doxycycline 200mg stat then 100mg OD x5d. Moderate: add Clarithromycin 500mg BD.",investigations:"CXR, FBC, CRP, U&E, blood cultures, sputum MC&S, CURB-65."},
+{name:"Acute Bronchitis",cat:"Respiratory",symptoms:{Cough:3,"Productive cough":2,"Sore throat":2,Fatigue:2,Fever:1,Wheezing:1,"Chest pain":1},redFlags:["Haemoptysis","Night sweats","Weight loss"],firstLine:"Self-limiting (viral). Paracetamol, fluids, honey+lemon. NO routine antibiotics (NICE). If >3wk or high-risk: Doxycycline 200mg stat then 100mg OD x5d.",investigations:"Usually none. CXR if >3wk cough or red flags. CRP if considering antibiotics."},
+{name:"Asthma Exacerbation",cat:"Respiratory",symptoms:{"Shortness of breath":3,Wheezing:3,Cough:2,"Chest tightness":3,Anxiety:1},redFlags:["Confusion","Silent chest","Unable to complete sentences"],firstLine:"Salbutamol 100mcg 4-6 puffs via spacer. If not improving: Prednisolone 40mg OD x5d. Maintenance: low-dose ICS (Beclometasone 200-400mcg BD). Step up BTS/SIGN.",investigations:"Peak flow, spirometry, FBC, CXR if first presentation."},
+{name:"COPD Exacerbation",cat:"Respiratory",symptoms:{"Shortness of breath":3,Wheezing:2,"Productive cough":3,Fatigue:2,"Chest tightness":2,Oedema:1},redFlags:["Confusion","Cyanosis","Cor pulmonale signs"],firstLine:"Acute: Prednisolone 30mg OD x5d + Amoxicillin 500mg TDS x5d if purulent sputum. Nebulised salbutamol + ipratropium. Maintenance: LABA+LAMA (Tiotropium+Formoterol).",investigations:"CXR, FBC, CRP, ABG/SpO2, spirometry (stable state), sputum MC&S."},
+{name:"Allergic Rhinitis",cat:"Respiratory",symptoms:{"Runny nose":3,"Nasal congestion":3,Itching:2,"Eye redness":2,Snoring:1,Headache:1,Fatigue:1},redFlags:["Unilateral symptoms","Blood-stained discharge"],firstLine:"Intranasal steroid: Mometasone 2 sprays each nostril OD. Oral antihistamine: Cetirizine 10mg OD or Fexofenadine 120mg OD. Eyes: Sodium cromoglicate QDS.",investigations:"Usually clinical. Skin prick test or specific IgE if triggers unclear."},
+
+// ─── CARDIOVASCULAR ──────────────
+{name:"Essential Hypertension",cat:"Cardiovascular",symptoms:{Headache:1,Dizziness:1,"Blurred vision":1,Palpitations:1},redFlags:["Confusion","Chest pain","Shortness of breath","Sudden severe headache"],firstLine:"Step 1 (<55y/T2DM): Ramipril 1.25mg→10mg. (≥55y/Black): Amlodipine 5→10mg. Target <140/90. Step 2: ACE-i+CCB. Step 3: add Indapamide 2.5mg. Step 4: Spironolactone 25mg.",investigations:"U&E, eGFR, HbA1c, lipids, urine ACR, ECG, ABPM/HBPM."},
+{name:"Stable Angina",cat:"Cardiovascular",symptoms:{"Chest pain":3,"Shortness of breath":2,Palpitations:1,Fatigue:1,Dizziness:1},redFlags:["Rest pain","Crescendo pattern","Syncope"],firstLine:"GTN spray 400mcg SL PRN. Prevention: Aspirin 75mg OD + Atorvastatin 80mg. Anti-anginal: Bisoprolol 2.5-5mg OD. If CI: Amlodipine 5mg OD or Isosorbide mononitrate 30mg MR OD.",investigations:"Resting ECG, FBC, lipids, HbA1c, TFTs, CT coronary angiography (NICE first-line)."},
+{name:"Heart Failure",cat:"Cardiovascular",symptoms:{"Shortness of breath":3,Oedema:3,Fatigue:3,Orthopnoea:3,PND:3,Palpitations:2,Cough:1,"Weight gain":1},redFlags:["Acute pulmonary oedema","Hypotension","Syncope"],firstLine:"ACE-i: Ramipril 1.25→10mg. BB: Bisoprolol 1.25→10mg. Diuretic: Furosemide 20-40mg OD. MRA: Spironolactone 25mg. Consider SGLT2i: Dapagliflozin 10mg OD.",investigations:"BNP/NT-proBNP, echo, ECG, CXR, FBC, U&E, eGFR, TFTs, lipids, HbA1c."},
+{name:"Atrial Fibrillation",cat:"Cardiovascular",symptoms:{Palpitations:3,Dizziness:2,"Shortness of breath":2,"Chest pain":1,Fatigue:2},redFlags:["Haemodynamic instability","Stroke symptoms","Chest pain"],firstLine:"Rate control: Bisoprolol 2.5-5mg OD. If CI: Diltiazem 120-360mg (not with HF). Anticoagulation CHA₂DS₂-VASc ≥2: Apixaban 5mg BD or Edoxaban 60mg OD.",investigations:"ECG, echo, TFTs, FBC, U&E, LFTs, CHA₂DS₂-VASc + HAS-BLED."},
+{name:"Deep Vein Thrombosis",cat:"Cardiovascular",symptoms:{"Calf pain":3,"Calf swelling":3,Oedema:2,"Swelling legs":2,Fever:1},redFlags:["Chest pain","Shortness of breath","Haemoptysis"],firstLine:"Wells score. If likely: D-dimer + USS. Confirmed: Apixaban 10mg BD x7d then 5mg BD (BNF). Or Rivaroxaban 15mg BD x21d then 20mg OD. Duration: provoked 3mo, unprovoked 6mo+.",investigations:"Wells score, D-dimer, compression USS, FBC, U&E, LFTs, coagulation. Thrombophilia if unprovoked/recurrent."},
+
+// ─── GI ──────────────────────────
+{name:"GORD / Acid Reflux",cat:"GI",symptoms:{Heartburn:3,Nausea:2,Bloating:2,"Chest pain":1,Cough:1,Dysphagia:1,"Sore throat":1,"Epigastric pain":2},redFlags:["Dysphagia","Weight loss","Haematemesis","Age>55 new onset"],firstLine:"Lifestyle (raise bed head, avoid triggers, weight loss). Omeprazole 20mg OD x4-8wk. Step down to PRN. If failure: double dose x4wk.",investigations:"Usually clinical. OGD if red flags, >55y new onset, or PPI failure 8wk."},
+{name:"Peptic Ulcer Disease",cat:"GI",symptoms:{"Epigastric pain":3,"Abdominal pain":2,Heartburn:2,Nausea:2,Bloating:2,Vomiting:1,"Weight loss":1,"Loss of appetite":1},redFlags:["Haematemesis","Melaena","Perforation signs"],firstLine:"Omeprazole 20mg BD + H.pylori eradication if positive: triple therapy (Omeprazole 20mg BD + Amoxicillin 1g BD + Clarithromycin 500mg BD x7d). Stop NSAIDs.",investigations:"H.pylori urea breath test or stool antigen. OGD if red flags or >55y."},
+{name:"Irritable Bowel Syndrome",cat:"GI",symptoms:{Bloating:3,"Abdominal pain":3,Diarrhoea:2,Constipation:2,Nausea:1,Fatigue:1},redFlags:["Weight loss","Rectal bleeding","Night sweats","Age>50 new onset"],firstLine:"Regular meals, fibre, hydration. Spasm: Mebeverine 135mg TDS or Peppermint oil. Constipation: Linaclotide 290mcg OD. Diarrhoea: Loperamide 2mg PRN (max 16mg/d).",investigations:"FBC, CRP, ESR, coeliac screen (tTG), calprotectin if <40y. Colonoscopy if red flags."},
+{name:"Acute Gastroenteritis",cat:"GI",symptoms:{Diarrhoea:3,Vomiting:3,Nausea:3,"Abdominal pain":2,Fever:2,Fatigue:1},redFlags:["Bloody diarrhoea","Severe dehydration","Fever >48h","Immunocompromised"],firstLine:"Oral rehydration: ORS sachets frequently. Anti-emetic: Ondansetron 4mg SL PRN. Avoid antibiotics unless bacterial confirmed. Loperamide only if no fever/blood.",investigations:"Usually none. Stool MC&S if >7d, bloody, travel hx, immunocompromised. U&E if dehydrated."},
+{name:"Gallstone Disease / Biliary Colic",cat:"GI",symptoms:{"Abdominal pain":3,"Epigastric pain":2,Nausea:2,Vomiting:2,Jaundice:1,"Pale stools":1,"Dark urine":1},redFlags:["Fever + jaundice (cholangitis)","Peritonism","Persistent vomiting"],firstLine:"Acute biliary colic: Diclofenac 75mg IM (BNF first-line for biliary colic) or 100mg PR. Paracetamol 1g. Refer for elective cholecystectomy. Acute cholecystitis: IV antibiotics + surgical referral.",investigations:"USS abdomen, FBC, CRP, LFTs, amylase, lipase."},
+{name:"Haemorrhoids",cat:"GI",symptoms:{"Rectal bleeding":3,"Itching":2,"Abdominal pain":1,Constipation:2},redFlags:["Weight loss","Change in bowel habit >50y","Anaemia"],firstLine:"Lifestyle: high fibre, fluids, avoid straining. Topical: Anusol (bismuth subgallate). Stool softener: Lactulose 15ml BD or Macrogol 1 sachet OD. Persistent: refer for banding.",investigations:"PR examination. Proctoscopy if needed. FBC if bleeding significant. Colonoscopy if >50y or red flags."},
+
+// ─── NEUROLOGY ───────────────────
+{name:"Migraine",cat:"Neurology",symptoms:{Headache:3,Nausea:2,Vomiting:1,Photophobia:2,"Blurred vision":1,Dizziness:1},redFlags:["Thunderclap onset","Confusion","Weakness one side","Fever + neck stiffness"],firstLine:"Acute: Sumatriptan 50-100mg PO at onset + Paracetamol 1g or Ibuprofen 400mg. Prophylaxis (≥4/mo): Propranolol 40mg BD→80mg BD, or Topiramate 25→50mg BD, or Amitriptyline 10mg nocte.",investigations:"Usually clinical. CT/MRI if red flags, new onset >50y, atypical features."},
+{name:"Tension Headache",cat:"Neurology",symptoms:{Headache:3,"Difficulty concentrating":1,Fatigue:1,"Neck stiffness":1,Insomnia:1},redFlags:["Thunderclap onset","Fever","Confusion","Visual disturbance"],firstLine:"Paracetamol 1g QDS or Ibuprofen 400mg TDS PRN. No opioids. Chronic (>15d/mo): Amitriptyline 10-25mg nocte. Lifestyle: sleep hygiene, stress mgmt, exercise.",investigations:"Usually none. CT/MRI if atypical, progressive, or red flags."},
+{name:"Bell's Palsy",cat:"Neurology",symptoms:{"Facial weakness":3,"Eye pain":1,"Ear pain":1,Headache:1,"Dry eyes":1},redFlags:["Bilateral weakness","Rash in ear (Ramsay Hunt)","Progressive over weeks"],firstLine:"Prednisolone 50mg OD x10d, started within 72h (BNF/NICE). Eye care: artificial tears QDS, tape eye shut at night. If Ramsay Hunt: add Aciclovir 800mg 5x daily x7d.",investigations:"Clinical diagnosis. Consider MRI if atypical, progressive, or bilateral. Lyme serology if tick exposure."},
+{name:"BPPV / Vertigo",cat:"Neurology",symptoms:{Vertigo:3,Dizziness:3,Nausea:2,Vomiting:1},redFlags:["Hearing loss","Neurological signs","Persistent vertigo >72h"],firstLine:"Epley manoeuvre (posterior canal BPPV). Short-term: Prochlorperazine 5mg TDS (max 2 weeks). Betahistine 16mg TDS for Meniere's. Vestibular rehab exercises.",investigations:"Dix-Hallpike test. Audiometry if hearing loss. MRI brain if central cause suspected."},
+{name:"Peripheral Neuropathy",cat:"Neurology",symptoms:{"Numbness/tingling":3,"Muscle pain":2,"Weakness one side":1,"Burning pain":2},redFlags:["Rapidly progressive","Autonomic dysfunction","Motor weakness"],firstLine:"Treat cause (diabetes: optimise HbA1c; B12: replace). Neuropathic pain: Amitriptyline 10mg nocte→75mg, or Gabapentin 300mg OD→600mg TDS, or Pregabalin 75mg BD→300mg BD.",investigations:"HbA1c, B12, folate, TFTs, U&E, LFTs, glucose, ESR, nerve conduction studies if needed."},
+{name:"Sciatica",cat:"Neurology",symptoms:{"Back pain":3,"Numbness/tingling":2,"Weakness one side":1,"Muscle pain":2},redFlags:["Bowel/bladder dysfunction","Saddle anaesthesia","Bilateral symptoms","Progressive motor loss"],firstLine:"Reassurance + stay active. NSAIDs: Naproxen 500mg BD + PPI. Neuropathic: Amitriptyline 10-25mg nocte or Gabapentin. Physio referral. MRI if >6wk or red flags.",investigations:"Usually clinical. MRI lumbar spine if red flags or >6 weeks unresponsive."},
+
+// ─── MSK ─────────────────────────
+{name:"Acute Low Back Pain",cat:"MSK",symptoms:{"Back pain":3,"Muscle pain":2,"Numbness/tingling":1},redFlags:["Bowel/bladder dysfunction","Saddle anaesthesia","Progressive weakness","Age>55 new onset","Weight loss"],firstLine:"Stay active (NICE). Ibuprofen 400mg TDS + PPI. If inadequate: add Codeine 30mg QDS short-term. NO bed rest. Physio referral.",investigations:"Usually none unless red flags. MRI if red flags. X-ray rarely helpful."},
+{name:"Osteoarthritis",cat:"MSK",symptoms:{"Joint pain":3,"Muscle pain":1,Fatigue:1,"Back pain":2},redFlags:["Joint swelling+fever","Night pain waking","Weight loss"],firstLine:"Paracetamol 1g QDS first-line. Topical Diclofenac gel 1% TDS. Oral Ibuprofen 400mg TDS + PPI (shortest duration). Exercise, weight mgmt.",investigations:"X-ray affected joint, FBC, ESR/CRP to exclude inflammatory."},
+{name:"Rheumatoid Arthritis",cat:"MSK",symptoms:{"Joint pain":3,"Muscle pain":2,Fatigue:2,"Morning stiffness":2,"Swelling legs":1},redFlags:["Sudden monoarthritis+fever (septic joint)","Vasculitic features"],firstLine:"Urgent rheumatology referral. DMARD: Methotrexate 7.5mg weekly (BNF) + Folic acid 5mg weekly (not same day). Bridging: Prednisolone 10-15mg OD. Naproxen 500mg BD + PPI for symptoms.",investigations:"FBC, ESR, CRP, RF, anti-CCP, U&E, LFTs, CXR (pre-MTX), X-ray hands+feet."},
+{name:"Acute Gout",cat:"MSK",symptoms:{"Joint pain":3,Oedema:2,Rash:1,Fever:1},redFlags:["Septic joint suspicion","Multi-joint+fever"],firstLine:"Acute: Naproxen 750mg stat then 250mg TDS + PPI. If NSAID CI: Colchicine 500mcg BD-TDS x3-4d. Prevention (≥2/yr): Allopurinol 100mg OD, titrate 100mg/mo, target urate <360µmol/L.",investigations:"Serum urate, synovial fluid MC&S if doubt, U&E, FBC."},
+{name:"Frozen Shoulder",cat:"MSK",symptoms:{"Joint pain":3,"Muscle pain":1,Insomnia:1},redFlags:["Trauma history","Red hot joint","Weight loss"],firstLine:"Analgesia: Paracetamol + Ibuprofen. Physiotherapy (most important). Corticosteroid injection: Triamcinolone 40mg + Lidocaine into glenohumeral joint. Course: 12-18 months self-limiting.",investigations:"Clinical diagnosis. X-ray shoulder to exclude other pathology. MRI if diagnostic doubt."},
+
+// ─── UROLOGY ─────────────────────
+{name:"Urinary Tract Infection",cat:"Urology",symptoms:{"Painful urination":3,"Frequent urination":3,"Urinary urgency":2,Fever:1,"Abdominal pain":1,"Blood in urine":1},redFlags:["Fever","Flank pain","Confusion","Rigors"],firstLine:"Women uncomplicated: Nitrofurantoin 100mg MR BD x3d (BNF first-line) or Trimethoprim 200mg BD x3d. Men: Trimethoprim 200mg BD x7d. Increase fluids.",investigations:"Urine dipstick, MSU MC&S. U&E if recurrent. Refer if male <16, pregnant, recurrent."},
+{name:"Kidney Stones / Renal Colic",cat:"Urology",symptoms:{"Flank pain":3,"Abdominal pain":2,Nausea:2,Vomiting:2,"Blood in urine":2,"Painful urination":1},redFlags:["Fever+obstruction","Bilateral obstruction","Reduced urine output","Solitary kidney"],firstLine:"Analgesia: Diclofenac 75mg IM (BNF first-line) or 100mg PR. Paracetamol 1g IV. Alpha-blocker: Tamsulosin 400mcg OD for stones 5-10mm (MET). Fluids. Stone >10mm or complicated: urology referral.",investigations:"CT KUB (gold standard), U&E, FBC, CRP, urine MC&S, urine pH, stone analysis."},
+{name:"Benign Prostatic Hyperplasia",cat:"Urology",symptoms:{"Frequent urination":3,"Urinary urgency":2,"Urinary incontinence":1,"Difficulty concentrating":1},redFlags:["Acute retention","Haematuria","Weight loss","Bone pain"],firstLine:"Mild: watchful waiting + lifestyle (reduce caffeine/alcohol, double void). Moderate: Alpha-blocker Tamsulosin 400mcg OD. If prostate large: add Finasteride 5mg OD. Refer if refractory.",investigations:"IPSS score, DRE, PSA (with counselling), U&E, flow rate, post-void residual USS."},
+
+// ─── PSYCHIATRY ──────────────────
+{name:"Depression",cat:"Psychiatry",symptoms:{"Low mood":3,Insomnia:3,Fatigue:3,"Difficulty concentrating":2,"Loss of appetite":2,"Weight loss":1,Anxiety:2,"Memory problems":1},redFlags:["Suicidal ideation","Psychotic symptoms","Self-harm"],firstLine:"Mild: guided self-help, exercise, CBT. Moderate-severe: Sertraline 50mg OD, titrate to 100-200mg at 4wk. Review 2wk then 4-weekly. Continue 6+mo after remission.",investigations:"PHQ-9, TFTs, FBC, B12/folate, glucose. ECG if elderly."},
+{name:"Generalised Anxiety Disorder",cat:"Psychiatry",symptoms:{Anxiety:3,Palpitations:2,Insomnia:2,"Difficulty concentrating":2,Tremor:1,"Muscle pain":1,Dizziness:1,Nausea:1,"Excessive sweating":1},redFlags:["Suicidal ideation","Substance misuse","Psychotic symptoms"],firstLine:"Step 1: psychoeducation, guided self-help. Step 2: CBT. Step 3: Sertraline 50mg OD. If inadequate 8wk: Escitalopram 10mg OD. SSRI CI: Pregabalin 150mg BD→300mg BD.",investigations:"GAD-7, TFTs, ECG if starting medication."},
+{name:"Panic Disorder",cat:"Psychiatry",symptoms:{Palpitations:3,"Chest pain":2,"Shortness of breath":2,Tremor:2,Dizziness:2,Nausea:1,"Numbness/tingling":1,"Excessive sweating":2},redFlags:["Cardiac symptoms needing exclusion","Suicidal ideation"],firstLine:"CBT first-line (NICE). If medication needed: Sertraline 50mg OD (start 25mg x1wk). If SSRI fails: Imipramine or CBT combination. NOT benzodiazepines long-term.",investigations:"ECG, TFTs to exclude organic cause. Panic Disorder Severity Scale."},
+{name:"Insomnia",cat:"Psychiatry",symptoms:{Insomnia:3,Fatigue:2,Anxiety:1,"Difficulty concentrating":2,"Low mood":1},redFlags:["Underlying depression","Substance misuse","Sleep apnoea"],firstLine:"Sleep hygiene first (NICE): regular schedule, avoid screens/caffeine, relaxation. CBT-I (first-line). Short-term only: Zopiclone 3.75-7.5mg (max 4 weeks). NOT long-term hypnotics.",investigations:"Sleep diary, Epworth scale (rule out OSA), PHQ-9/GAD-7, TFTs."},
+
+// ─── ENT ─────────────────────────
+{name:"Acute URTI / Common Cold",cat:"ENT",symptoms:{Cough:2,"Sore throat":3,"Runny nose":3,"Nasal congestion":3,Headache:2,Fever:1,Fatigue:1,"Muscle pain":1},redFlags:["High persistent fever","Severe headache","Neck stiffness"],firstLine:"Self-limiting (viral). Paracetamol 1g QDS, fluids, rest. NO antibiotics. Sore throat >1wk or Centor/FeverPAIN ≥3: Phenoxymethylpenicillin 500mg QDS x5d.",investigations:"Usually none. FeverPAIN/Centor score. Throat swab if recurrent."},
+{name:"Acute Otitis Media",cat:"ENT",symptoms:{"Ear pain":3,Fever:2,"Hearing loss":1,Vomiting:1},redFlags:["Mastoid tenderness","Facial weakness","Meningism"],firstLine:"Most self-limiting. Analgesia: Paracetamol + Ibuprofen. If no improvement 4d or systemically unwell: Amoxicillin 500mg TDS x5d. Children: 40mg/kg/d in 3 divided doses.",investigations:"Otoscopy. Tympanometry if recurrent. Audiometry if hearing concerns."},
+{name:"Acute Sinusitis",cat:"ENT",symptoms:{"Facial pain":3,"Nasal congestion":3,"Runny nose":2,Headache:2,Fever:1,"Productive cough":1},redFlags:["Periorbital oedema/redness","Visual changes","Severe systemic illness"],firstLine:"Self-limiting (viral if <10d). Intranasal decongestant: Xylometazoline x max 7d. Steam inhalation. Analgesia. If >10d or worsening: Phenoxymethylpenicillin 500mg QDS x5d or Doxycycline.",investigations:"Clinical diagnosis. CT sinuses if chronic/recurrent or complications suspected."},
+
+// ─── DERMATOLOGY ─────────────────
+{name:"Eczema / Atopic Dermatitis",cat:"Dermatology",symptoms:{Rash:3,Itching:3,"Dry skin":2,Insomnia:1},redFlags:["Signs of infection (weeping/crusting)","Eczema herpeticum","Erythroderma"],firstLine:"Emollient liberally QDS (250-500g/wk). Mild flare: Hydrocortisone 1% BD x7-14d. Moderate: Betamethasone 0.025% BD x7-14d. Infected: Flucloxacillin 500mg QDS x7d. Avoid soap.",investigations:"Usually clinical. Skin swab if infected. Patch testing if contact dermatitis suspected. IgE/RAST if atopic."},
+{name:"Psoriasis",cat:"Dermatology",symptoms:{Rash:3,Itching:2,"Joint pain":1,"Nail changes":2},redFlags:["Erythroderma","Pustular psoriasis","Severe joint involvement"],firstLine:"Mild: emollient + Betamethasone/calcipotriol combo (Dovobet) OD x4wk. Moderate: calcipotriol (Dovonex) BD. Scalp: Betamethasone scalp application. Phototherapy/DMARD if moderate-severe → derm referral.",investigations:"Clinical diagnosis. Biopsy if uncertain. PASI/DLQI scoring. FBC, LFTs, U&E if starting systemic."},
+{name:"Urticaria / Hives",cat:"Dermatology",symptoms:{"Wheals/hives":3,Itching:3,Oedema:1,Rash:2},redFlags:["Anaphylaxis signs","Lip/tongue swelling","Stridor"],firstLine:"Acute: Cetirizine 10mg OD (BNF). If inadequate: up-dose to 20mg (off-label NICE). If severe: short course Prednisolone 40mg OD x3-5d. Chronic (>6wk): Cetirizine 20mg + consider Omalizumab referral.",investigations:"Usually clinical. If chronic: FBC, ESR, CRP, TFTs, LFTs. Allergy testing if trigger suspected."},
+{name:"Cellulitis",cat:"Dermatology",symptoms:{Rash:3,Fever:2,"Swelling legs":2,"Muscle pain":1},redFlags:["Rapidly spreading","Crepitus","Bullae","Sepsis signs"],firstLine:"Mild: Flucloxacillin 500mg QDS x5-7d (BNF). Penicillin allergy: Clarithromycin 500mg BD. Mark border with pen. Elevate limb. Severe/facial: IV antibiotics → hospital.",investigations:"FBC, CRP, blood cultures if febrile. Swab if open wound. USS if abscess suspected."},
+{name:"Acne Vulgaris",cat:"Dermatology",symptoms:{Acne:3,Rash:2,"Low mood":1},redFlags:["Severe cystic/nodular","Scarring","Significant psychological impact"],firstLine:"Mild: Benzoyl peroxide 5% gel OD. Moderate: add topical retinoid (Adapalene 0.1% gel nocte) or topical antibiotic (Clindamycin 1% lotion BD). Moderate-severe: Lymecycline 408mg OD x3mo. Severe: refer derm for Isotretinoin.",investigations:"Usually clinical. Consider hormonal profile (testosterone, DHEAS) in females with other androgenic features."},
+{name:"Fungal Skin Infection / Tinea",cat:"Dermatology",symptoms:{Rash:3,Itching:3},redFlags:["Immunocompromised","Widespread","Treatment failure"],firstLine:"Topical: Clotrimazole 1% cream BD x2-4wk (BNF) or Terbinafine 1% cream OD x1-2wk. Nail: Terbinafine 250mg OD x6wk (fingers)/3mo (toes). Scalp: oral Terbinafine + antifungal shampoo.",investigations:"Skin scrapings for microscopy and culture. Nail clippings for dermatophyte culture."},
+{name:"Herpes Zoster / Shingles",cat:"Dermatology",symptoms:{Rash:3,"Blistering rash":3,"Muscle pain":2,"Numbness/tingling":2,Fever:1,Headache:1},redFlags:["Ophthalmic involvement","Immunocompromised","Disseminated","Ramsay Hunt"],firstLine:"Within 72h of rash: Aciclovir 800mg 5x daily x7d (BNF) or Valaciclovir 1g TDS x7d. Analgesia: Paracetamol + Amitriptyline 10-25mg nocte for neuropathic pain. If ophthalmic: urgent ophthalmology.",investigations:"Usually clinical. Viral swab (PCR) if diagnostic doubt. Consider HIV test if <50y or atypical."},
+
+// ─── GYNAECOLOGY ─────────────────
+{name:"Vaginal Candidiasis",cat:"Gynaecology",symptoms:{"Vaginal discharge":3,Itching:3,Dyspareunia:1,"Painful urination":1},redFlags:["Pregnancy","Recurrent (≥4/yr)","Immunocompromised"],firstLine:"Intravaginal: Clotrimazole 500mg pessary single dose (BNF). Or oral Fluconazole 150mg single dose. Recurrent (≥4/yr): Fluconazole 150mg every 72h x3 doses then weekly x6mo.",investigations:"Usually clinical. HVS if recurrent/atypical. Consider HbA1c (diabetes), HIV test."},
+{name:"Bacterial Vaginosis",cat:"Gynaecology",symptoms:{"Vaginal discharge":3,Itching:1},redFlags:["Pregnancy","PID symptoms"],firstLine:"Metronidazole 400mg BD x5-7d (BNF) or Metronidazole 0.75% vaginal gel x5 nights. Avoid alcohol with metronidazole. Recurrent: consider longer course.",investigations:"HVS (clue cells, pH >4.5, whiff test). If recurrent: STI screen."},
+{name:"Dysmenorrhoea",cat:"Gynaecology",symptoms:{"Pelvic pain":3,"Back pain":2,Nausea:1,Diarrhoea:1,"Low mood":1},redFlags:["Severe unresponsive to treatment","Irregular bleeding","Dyspareunia"],firstLine:"Primary: Mefenamic acid 500mg TDS (start day before period) or Ibuprofen 400mg TDS. If inadequate: COCP. Secondary (endometriosis suspected): refer gynaecology. Hormonal: Desogestrel 75mcg continuous.",investigations:"Usually clinical for primary. USS pelvis if secondary suspected. Laparoscopy for endometriosis (specialist)."},
+{name:"Menorrhagia",cat:"Gynaecology",symptoms:{"Heavy periods":3,Fatigue:2,Pallor:1,Dizziness:1},redFlags:["Postmenopausal bleeding","Intermenstrual bleeding >40y","Pelvic mass"],firstLine:"LNG-IUS (Mirena) first-line (NICE). Alternatives: Tranexamic acid 1g TDS during menses. Mefenamic acid 500mg TDS during menses. COCP. If fibroids: refer gynaecology.",investigations:"FBC, ferritin, TFTs, coagulation screen. USS pelvis. Endometrial biopsy if >45y or risk factors."},
+
+// ─── INFECTIOUS DISEASE ──────────
+{name:"Dengue Fever",cat:"Infectious Disease",symptoms:{Fever:3,Headache:3,"Muscle pain":3,"Joint pain":3,Rash:2,Nausea:2,"Eye pain":2,Fatigue:2},redFlags:["Abdominal pain","Persistent vomiting","Bleeding","Restlessness","Liver enlargement"],firstLine:"Supportive: oral rehydration, Paracetamol for fever/pain. AVOID NSAIDs and Aspirin (bleeding risk). Monitor platelets daily. Admit if warning signs or platelets <50,000.",investigations:"NS1 antigen (day 1-5), Dengue IgM/IgG (day 5+), FBC (platelets, haematocrit), LFTs."},
+{name:"Malaria",cat:"Infectious Disease",symptoms:{Fever:3,Headache:2,"Muscle pain":2,Nausea:2,Vomiting:2,Diarrhoea:1,Jaundice:1,Fatigue:2},redFlags:["Confusion","Seizures","Severe anaemia","Jaundice","Renal failure","Respiratory distress"],firstLine:"P. vivax: Chloroquine 600mg stat then 300mg at 6h, 24h, 48h + Primaquine 15mg OD x14d (check G6PD). P. falciparum: Artemether-Lumefantrine (ACT) x3d. Severe: IV Artesunate → hospital.",investigations:"Peripheral smear (thick+thin), rapid diagnostic test (RDT), FBC, LFTs, U&E, glucose, G6PD."},
+{name:"Typhoid Fever",cat:"Infectious Disease",symptoms:{Fever:3,Headache:2,"Abdominal pain":2,Constipation:2,Diarrhoea:1,Fatigue:3,"Loss of appetite":2,Rash:1},redFlags:["Intestinal perforation","GI bleeding","Confusion","Hepatosplenomegaly"],firstLine:"Azithromycin 500mg OD x7d (BNF, for uncomplicated) or Ceftriaxone 2g IV OD x7-14d. Fluoroquinolone resistance common in India. Supportive: hydration, paracetamol.",investigations:"Blood culture (gold standard), Widal test (less reliable), FBC, LFTs, stool culture."},
+{name:"Tuberculosis (Pulmonary)",cat:"Infectious Disease",symptoms:{Cough:3,"Productive cough":3,Haemoptysis:2,"Night sweats":3,"Weight loss":3,Fever:2,Fatigue:2,"Loss of appetite":2},redFlags:["Haemoptysis","Severe weight loss","Miliary pattern","Meningeal signs"],firstLine:"RNTCP regimen: Intensive phase (2mo): HRZE (Isoniazid+Rifampicin+Pyrazinamide+Ethambutol). Continuation (4mo): HR. Add Pyridoxine 10mg OD. DOTS supervision. Notify.",investigations:"Sputum AFB x2, GeneXpert MTB/RIF, CXR, Mantoux/IGRA. FBC, LFTs, U&E, HIV test."},
+
+// ─── METABOLIC ───────────────────
+{name:"Hyperlipidaemia",cat:"Metabolic",symptoms:{},redFlags:["FH features","Tendon xanthomata","Premature CVD"],firstLine:"QRISK3 ≥10%: Atorvastatin 20mg OD (primary prevention). Established CVD: Atorvastatin 80mg OD. Lifestyle: diet, exercise, smoking cessation. Target >40% reduction in non-HDL cholesterol.",investigations:"Fasting lipid profile, HbA1c, U&E, LFTs, TFTs. LFTs at 3 and 12mo. Consider genetic testing if FH suspected."},
+
+// ─── OPHTHALMOLOGY ───────────────
+{name:"Conjunctivitis",cat:"Ophthalmology",symptoms:{"Eye redness":3,Itching:2,"Eye pain":1,"Blurred vision":1},redFlags:["Severe pain","Photophobia","Reduced vision","Contact lens wearer"],firstLine:"Viral: self-limiting, cold compresses, lubricant drops. Bacterial: Chloramphenicol 0.5% drops QDS x5d (BNF) or Fusidic acid 1% gel BD. Allergic: Sodium cromoglicate QDS + oral antihistamine.",investigations:"Usually clinical. Swab if severe/neonatal/contact lens related. Refer ophthalmology if red flags."},
+
+// ─── SLEEP ───────────────────────
+{name:"Obstructive Sleep Apnoea",cat:"Respiratory",symptoms:{Snoring:3,"Daytime sleepiness":3,Fatigue:2,Headache:1,"Difficulty concentrating":2,Insomnia:1,Palpitations:1},redFlags:["Witnessed apnoeas","BMI >40","Pulmonary hypertension"],firstLine:"Lifestyle: weight loss, alcohol avoidance, lateral sleep. Moderate-severe: CPAP referral. Epworth >10 → sleep clinic. DVLA implications.",investigations:"Epworth Sleepiness Scale, BMI, neck circumference, overnight oximetry, polysomnography (specialist)."},
+
+// ─── GI (EXPANDED) ──────────────
+{name:"Coeliac Disease",cat:"GI",symptoms:{Diarrhoea:3,Bloating:3,Fatigue:2,"Weight loss":2,Steatorrhoea:3,"Abdominal pain":2,Nausea:1,Pallor:1,"Numbness/tingling":1,Rash:1},redFlags:["Severe malnutrition","Anaemia unresponsive to iron","Lymphoma symptoms"],firstLine:"Lifelong strict gluten-free diet. Refer to dietitian. Supplement iron, folate, calcium, vitamin D as needed. Annual bloods. Refer gastroenterology for biopsy confirmation.",investigations:"tTG IgA (first-line), total IgA (exclude deficiency), EMA IgA, duodenal biopsy (gold standard), FBC, ferritin, folate, B12, calcium, vitamin D, LFTs."},
+{name:"Crohn's Disease",cat:"GI",symptoms:{Diarrhoea:3,"Abdominal pain":3,"Weight loss":3,Fatigue:2,"RIF pain":2,Fever:1,"Pelvic pain":1,"Joint pain":1,Rash:1},redFlags:["Bowel obstruction","Perianal abscess/fistula","Severe malnutrition","Toxic megacolon"],firstLine:"Induce remission: Prednisolone 40mg OD taper over 8wk. Maintenance: Azathioprine 2-2.5mg/kg OD (check TPMT first). Enteral nutrition if intolerant. Biologics: refer gastro for Infliximab/Adalimumab.",investigations:"FBC, CRP, ESR, faecal calprotectin, U&E, LFTs, TPMT, colonoscopy+biopsy, MRI small bowel."},
+{name:"Ulcerative Colitis",cat:"GI",symptoms:{"Bloody diarrhoea":3,Diarrhoea:3,"Abdominal pain":2,"Rectal bleeding":3,Fatigue:2,"Weight loss":1,Fever:1,"Joint pain":1},redFlags:["Toxic megacolon",">6 bloody stools/day","Tachycardia","Fever","Anaemia"],firstLine:"Mild-moderate: Mesalazine 2.4g daily (oral+rectal). Acute flare: Prednisolone 40mg OD taper. Maintenance: Mesalazine 1.2-2.4g daily. Steroid-dependent: Azathioprine. Severe: hospital + IV steroids.",investigations:"FBC, CRP, ESR, faecal calprotectin, stool MC&S (exclude infection), colonoscopy+biopsy, LFTs, U&E."},
+{name:"Acute Appendicitis",cat:"GI",symptoms:{"RIF pain":3,"Abdominal pain":3,Nausea:2,Vomiting:2,Fever:2,"Loss of appetite":2},redFlags:["Peritonism","Perforation","Sepsis"],firstLine:"Urgent surgical referral. NBM. IV fluids, IV antibiotics (Co-amoxiclav 1.2g TDS). Appendicectomy (laparoscopic preferred). Analgesia: Paracetamol + Morphine titrated.",investigations:"FBC, CRP, U&E, urinalysis (exclude UTI), pregnancy test (women), USS abdomen, CT abdomen if diagnostic doubt."},
+{name:"Viral Hepatitis (Acute)",cat:"GI",symptoms:{Jaundice:3,Fatigue:3,Nausea:3,"Abdominal pain":2,"Dark urine":3,"Pale stools":2,"Loss of appetite":2,Fever:1,"Joint pain":1},redFlags:["Coagulopathy","Encephalopathy","Liver failure"],firstLine:"Supportive: rest, avoid alcohol, paracetamol ≤2g/day. Hep B: acute usually self-limiting, refer if chronic (Tenofovir/Entecavir). Hep C: refer for DAA therapy (Sofosbuvir-based). Notifiable disease.",investigations:"Hep A IgM, HBsAg, HBcAb IgM, Hep C Ab + RNA, LFTs, coagulation, FBC, U&E, USS liver."},
+{name:"Liver Cirrhosis",cat:"GI",symptoms:{Jaundice:3,Fatigue:3,"Abdominal distension":3,Oedema:2,"Weight loss":2,Confusion:1,"Spider naevi":2,Bruising:1,Itching:1},redFlags:["Variceal bleeding","Spontaneous bacterial peritonitis","Hepatic encephalopathy","Hepatorenal syndrome"],firstLine:"Treat cause (alcohol cessation, antivirals). Ascites: Spironolactone 100mg OD ± Furosemide 40mg OD, low sodium diet. Varices prophylaxis: Carvedilol 6.25mg BD. Encephalopathy: Lactulose 15-30ml TDS. Refer hepatology.",investigations:"LFTs, coagulation, FBC, U&E, albumin, USS liver + portal Doppler, AFP, fibroscan, OGD (varices). Child-Pugh/MELD scoring."},
+
+// ─── NEUROLOGY (EXPANDED) ────────
+{name:"Epilepsy",cat:"Neurology",symptoms:{Seizures:3,"Loss of consciousness":3,Confusion:2,"Numbness/tingling":1,"Difficulty concentrating":1,Fatigue:1},redFlags:["Status epilepticus","First seizure in adult >25","Seizure with focal neurology","Seizure with fever+neck stiffness"],firstLine:"After first seizure: investigate, may not need AED. Focal: Lamotrigine 25mg OD→100-200mg BD (BNF). Generalised tonic-clonic: Sodium valproate 300mg BD→600mg BD (NOT in women of childbearing age). Alternative: Levetiracetam 250mg BD→1.5g BD. DVLA: 1 year seizure-free.",investigations:"EEG, MRI brain (all new-onset adults), FBC, U&E, LFTs, glucose, calcium, ECG. Prolactin (within 20min if query PNES)."},
+{name:"TIA / Stroke",cat:"Neurology",symptoms:{"Weakness one side":3,"Slurred speech":3,"Blurred vision":2,"Visual field loss":2,Confusion:2,Dizziness:2,Headache:1,"Numbness/tingling":2,"Difficulty swallowing":1,"Facial weakness":2},redFlags:["ALL TIA/stroke is a red flag — emergency"],firstLine:"Suspected stroke: FAST assessment → call 999. Acute ischaemic: thrombolysis within 4.5h (Alteplase). TIA (resolved <24h): Aspirin 300mg stat, ABCD2 score. Secondary prevention: Clopidogrel 75mg OD + Atorvastatin 80mg. HTN control, lifestyle.",investigations:"Urgent CT head (exclude haemorrhage), CT angiography, MRI DWI, FBC, U&E, glucose, lipids, coagulation, ECG, echo, carotid Doppler."},
+{name:"Dementia (Alzheimer's)",cat:"Neurology",symptoms:{"Memory problems":3,Confusion:3,"Difficulty concentrating":2,"Low mood":1,Anxiety:1,Insomnia:1,"Loss of consciousness":0},redFlags:["Rapid onset","Young onset (<65)","Focal neurology","Personality change"],firstLine:"Non-pharmacological first: cognitive stimulation, structured routine, carer support. Mild-moderate: Donepezil 5mg nocte→10mg (BNF). Moderate-severe: Memantine 5mg OD→20mg. Behavioural: avoid antipsychotics unless severe risk. Refer memory clinic.",investigations:"Cognitive assessment (MMSE/MoCA/ACE-III), FBC, U&E, LFTs, TFTs, calcium, B12, folate, glucose, syphilis serology, MRI brain, CT if MRI unavailable."},
+{name:"Carpal Tunnel Syndrome",cat:"Neurology",symptoms:{"Hand tingling at night":3,"Numbness/tingling":3,"Wrist pain":2,"Weakness one side":1},redFlags:["Thenar wasting","Bilateral acute onset","Progressive motor loss"],firstLine:"Conservative: wrist splint at night x6wk (neutral position). If persists: corticosteroid injection (Methylprednisolone 40mg + lidocaine). If refractory or thenar wasting: surgical decompression referral.",investigations:"Clinical (Phalen's test, Tinel's sign). Nerve conduction studies if diagnostic doubt or pre-surgical. TFTs, glucose (exclude secondary causes)."},
+
+// ─── PSYCHIATRY (EXPANDED) ───────
+{name:"Bipolar Disorder",cat:"Psychiatry",symptoms:{"Mood swings":3,Insomnia:2,"Racing thoughts":2,Anxiety:2,"Low mood":2,"Difficulty concentrating":2,Hyperactivity:2,"Loss of appetite":1},redFlags:["Suicidal ideation","Psychotic symptoms","Severe mania with risk behaviour"],firstLine:"Acute mania: Olanzapine 10mg or Haloperidol 5mg. If on antidepressant: STOP it (can trigger mania). Long-term: Lithium 400mg nocte (target 0.6-0.8mmol/L) — first-line per NICE. Alternative: Valproate (NOT women of childbearing age). Refer psychiatry.",investigations:"Baseline: FBC, U&E, eGFR, TFTs, calcium, ECG, weight, lipids, glucose. Lithium: level at 5-7 days, then weekly until stable, then 3-monthly. TFTs + renal 6-monthly."},
+{name:"PTSD",cat:"Psychiatry",symptoms:{Flashbacks:3,Insomnia:3,Anxiety:3,"Low mood":2,"Difficulty concentrating":2,Hyperactivity:1,"Excessive sweating":1,Palpitations:1},redFlags:["Suicidal ideation","Substance misuse","Dissociation","Self-harm"],firstLine:"First-line: Trauma-focused CBT or EMDR (NICE). If medication needed (3+ months symptoms): Sertraline 50mg OD→200mg or Venlafaxine 37.5mg→150mg BD. NOT benzodiazepines. Sleep: Prazosin 1mg nocte for nightmares (off-label).",investigations:"PCL-5 (PTSD checklist), PHQ-9, GAD-7, substance use screen. TFTs to exclude organic cause."},
+{name:"OCD",cat:"Psychiatry",symptoms:{"Compulsive behaviours":3,Anxiety:3,Insomnia:1,"Low mood":2,"Difficulty concentrating":2},redFlags:["Suicidal ideation","Severe functional impairment","Psychotic features"],firstLine:"Mild: guided self-help with ERP (exposure-response prevention). Moderate-severe: SSRI — Fluoxetine 20mg→60mg (BNF, higher doses than depression). If inadequate 12wk: increase dose or switch SSRI. CBT with ERP (NICE). Combination SSRI+CBT for severe.",investigations:"Y-BOCS (Yale-Brown scale), PHQ-9, GAD-7. TFTs, FBC to exclude organic cause."},
+{name:"Alcohol Dependence",cat:"Psychiatry",symptoms:{"Alcohol craving":3,Tremor:3,Anxiety:2,Insomnia:2,"Excessive sweating":2,Nausea:1,Seizures:1,Confusion:1},redFlags:["Delirium tremens","Seizures","Wernicke's encephalopathy","Suicidal ideation"],firstLine:"CIWA score for withdrawal severity. Mild-moderate: community detox with Chlordiazepoxide reducing regimen (30mg QDS day1 → reduce over 7-10 days). Thiamine 100mg TDS (prevent Wernicke's). Relapse prevention: Acamprosate 666mg TDS or Naltrexone 50mg OD. Refer specialist.",investigations:"LFTs (GGT, AST:ALT ratio), FBC (MCV), U&E, coagulation, phosphate, magnesium, B12, folate, fibroscan if chronic."},
+
+// ─── CARDIOVASCULAR (EXPANDED) ───
+{name:"Pulmonary Embolism",cat:"Cardiovascular",symptoms:{"Shortness of breath":3,"Pleuritic chest pain":3,"Chest pain":2,Palpitations:2,Haemoptysis:2,"Calf pain":1,"Calf swelling":1,Fever:1,"Loss of consciousness":1},redFlags:["Haemodynamic instability","Massive PE","RV strain"],firstLine:"Wells score → if likely: CTPA. Confirmed: Apixaban 10mg BD x7d then 5mg BD. Or Rivaroxaban 15mg BD x21d then 20mg OD. Massive PE: thrombolysis (Alteplase 50mg). Duration: provoked 3mo, unprovoked 6mo+.",investigations:"Wells score, D-dimer (if unlikely), CTPA (gold standard), ECG, ABG, troponin, BNP, echo if haemodynamically unstable."},
+{name:"Acute Pericarditis",cat:"Cardiovascular",symptoms:{"Chest pain":3,"Pleuritic chest pain":3,Fever:2,"Shortness of breath":1,Fatigue:1},redFlags:["Cardiac tamponade","Haemodynamic compromise","Large effusion","Immunosuppressed"],firstLine:"NSAIDs: Ibuprofen 600mg TDS for 1-2 weeks then taper (BNF). PLUS Colchicine 500mcg BD for 3 months (reduces recurrence). Avoid exercise until resolved. If large effusion/tamponade: urgent cardiology.",investigations:"ECG (widespread saddle-shaped ST elevation), troponin, CRP, echo, CXR, FBC, U&E, TFTs, autoimmune screen if recurrent."},
+{name:"Peripheral Arterial Disease",cat:"Cardiovascular",symptoms:{Claudication:3,"Calf pain":2,"Numbness/tingling":1,"Skin ulcer":2,"Erectile dysfunction":1,"Cold intolerance":1},redFlags:["Rest pain","Critical limb ischaemia","Gangrene","Acute limb ischaemia (6Ps)"],firstLine:"CVD risk reduction: Atorvastatin 80mg, Clopidogrel 75mg OD (preferred over aspirin per NICE), smoking cessation (most important). Supervised exercise programme x3mo. Claudication: Naftidrofuryl 200mg TDS. Refer vascular if rest pain or critical ischaemia.",investigations:"ABPI (ankle-brachial pressure index: <0.9 = PAD), duplex USS, FBC, HbA1c, lipids, U&E, CT/MR angiography if intervention planned."},
+
+// ─── DERMATOLOGY (EXPANDED) ──────
+{name:"Impetigo",cat:"Dermatology",symptoms:{Rash:3,"Blistering rash":2,Itching:2,Fever:1},redFlags:["Periorbital involvement","Systemic sepsis","Extensive/non-responding"],firstLine:"Localised: Hydrogen peroxide 1% cream TDS x5d (NICE first-line). If inadequate: Fusidic acid 2% cream TDS x5d. Extensive/bullous: Flucloxacillin 500mg QDS x5d. Penicillin allergy: Clarithromycin 250mg BD x5d. School exclusion until crusts dry or 48h antibiotics.",investigations:"Usually clinical. Skin swab if recurrent or non-responding. Consider MRSA swab."},
+{name:"Scabies",cat:"Dermatology",symptoms:{Itching:3,Rash:3,"Blistering rash":1,Insomnia:1},redFlags:["Crusted/Norwegian scabies","Immunocompromised","Secondary cellulitis"],firstLine:"Permethrin 5% cream: apply whole body (neck down) including web spaces, under nails, genitalia. Leave 8-12h, wash off. Repeat at day 7. Treat all household contacts simultaneously. Itch may persist 4-6wk (Cetirizine 10mg OD).",investigations:"Usually clinical (burrows, web spaces). Dermatoscopy may show mites. Skin scraping microscopy if diagnostic doubt."},
+{name:"Rosacea",cat:"Dermatology",symptoms:{Rash:3,"Eye redness":2,"Facial pain":1,Acne:1},redFlags:["Ocular rosacea with keratitis","Rhinophyma"],firstLine:"Mild: Ivermectin 1% cream OD (first-line per BNF for papulopustular). Or Metronidazole 0.75% gel BD. Moderate: add Doxycycline 40mg MR OD x8-12wk. Avoid triggers (alcohol, spicy food, sun). Sunscreen daily. Ocular: lid hygiene + Doxycycline.",investigations:"Clinical diagnosis. No routine investigations. Consider skin biopsy if uncertain. Ophthalmology referral if ocular involvement."},
+{name:"Basal Cell Carcinoma",cat:"Dermatology",symptoms:{Rash:2,"Skin ulcer":3},redFlags:["Perineural involvement","Large (>2cm)","Recurrent","High-risk site (around eyes, nose, lips)"],firstLine:"Refer dermatology/plastics via 2-week wait pathway. Excisional biopsy with 4mm margins (first-line). Mohs micrographic surgery for high-risk/facial. Superficial BCC: Imiquimod 5% cream 5x/wk x6wk or photodynamic therapy.",investigations:"Clinical + dermatoscopy. Biopsy for histological confirmation. Imaging only if deep invasion suspected."},
+
+// ─── GYNAECOLOGY (EXPANDED) ──────
+{name:"Pelvic Inflammatory Disease",cat:"Gynaecology",symptoms:{"Pelvic pain":3,"Vaginal discharge":3,Fever:2,Dyspareunia:2,"Abdominal pain":2,"Vaginal bleeding":1,Nausea:1},redFlags:["Tubo-ovarian abscess","Peritonitis","Pregnancy (exclude ectopic)"],firstLine:"Outpatient: IM Ceftriaxone 1g stat + Doxycycline 100mg BD x14d + Metronidazole 400mg BD x14d. Severe/inpatient: IV Ceftriaxone + IV Metronidazole. Contact tracing. Screen for chlamydia/gonorrhoea. Pregnancy test.",investigations:"NAAT for chlamydia+gonorrhoea, pregnancy test, FBC, CRP, USS pelvis (abscess?), blood cultures if febrile. HVS."},
+{name:"Menopause / HRT",cat:"Gynaecology",symptoms:{"Hot flushes":3,"Night sweats":3,Insomnia:2,"Low mood":2,Anxiety:2,Fatigue:2,Dyspareunia:2,"Vaginal discharge":1,"Joint pain":1,"Difficulty concentrating":1},redFlags:["Postmenopausal bleeding","Breast lump","VTE history"],firstLine:"First-line for vasomotor symptoms: HRT. <51y with uterus: combined HRT (Estradiol patches 50mcg + Micronised progesterone 100mg). No uterus: estrogen only. Vaginal dryness: topical vaginal estrogen (Estriol cream). CBT for mood. Review annually.",investigations:"Usually clinical (>45y with symptoms). If <45y: FSH x2 (4-6wk apart). Mammogram up to date. DEXA if early menopause."},
+{name:"Uterine Fibroids",cat:"Gynaecology",symptoms:{"Heavy periods":3,"Pelvic pain":2,"Abdominal distension":2,"Frequent urination":1,"Back pain":1,Dyspareunia:1,Fatigue:1},redFlags:["Postmenopausal growth","Rapid enlargement","Severe anaemia"],firstLine:"Small/asymptomatic: watchful waiting. Menorrhagia: LNG-IUS (Mirena), or Tranexamic acid 1g TDS during menses. Medical shrinkage: GnRH analogue (Leuprorelin) short-term pre-surgery. Surgical: myomectomy or hysterectomy. Refer gynaecology.",investigations:"FBC, ferritin, USS pelvis (transabdominal+transvaginal), MRI if surgical planning."},
+{name:"Ectopic Pregnancy",cat:"Gynaecology",symptoms:{"Pelvic pain":3,"Vaginal bleeding":3,"Abdominal pain":3,"Shoulder tip pain":2,Dizziness:2,Nausea:1,"Loss of consciousness":1},redFlags:["ALL suspected ectopic is an emergency — haemodynamic instability, peritonism, syncope"],firstLine:"Suspected: urgent pregnancy test + USS. Confirmed: Haemodynamically stable + unruptured <35mm + βhCG <5000: Methotrexate 50mg/m² IM. Unstable or ruptured: emergency laparoscopy/salpingectomy. Anti-D if Rh negative.",investigations:"Urgent serum βhCG (serial 48h), transvaginal USS, FBC, group & save, coagulation, cross-match if unstable."},
+
+// ─── INFECTIOUS DISEASE (EXPANDED)
+{name:"Chickenpox (Varicella)",cat:"Infectious Disease",symptoms:{Rash:3,"Blistering rash":3,Fever:2,Headache:1,Fatigue:1,Itching:2,"Loss of appetite":1},redFlags:["Immunocompromised","Pregnant","Neonate","Pneumonia","Encephalitis"],firstLine:"Usually self-limiting in children. Symptomatic: Paracetamol (NOT ibuprofen in children — risk of necrotising fasciitis), Calamine lotion, Chlorphenamine for itch. Adults/immunocompromised/pregnant: Aciclovir 800mg 5x daily x7d within 24h of rash. School exclusion: until all vesicles crusted.",investigations:"Usually clinical. PCR of vesicle fluid if diagnostic doubt. Varicella IgM/IgG if immunity uncertain. FBC, LFTs if complicated."},
+{name:"Influenza",cat:"Infectious Disease",symptoms:{Fever:3,Headache:3,"Muscle pain":3,Fatigue:3,Cough:2,"Sore throat":2,"Runny nose":1},redFlags:["Respiratory distress","Confusion","Severe dehydration","Pregnancy","Immunocompromised"],firstLine:"Self-limiting. Symptomatic: Paracetamol, fluids, rest. Oseltamivir 75mg BD x5d if: at-risk group (>65, pregnant, chronic disease, immunosuppressed) AND within 48h onset. Annual flu vaccination for at-risk groups.",investigations:"Usually clinical. Nasopharyngeal swab (PCR) during outbreaks or if antiviral considered. CXR if secondary pneumonia suspected."},
+{name:"COVID-19",cat:"Infectious Disease",symptoms:{Fever:3,Cough:3,Fatigue:3,"Shortness of breath":2,"Muscle pain":2,Headache:2,"Loss of appetite":1,Diarrhoea:1,"Sore throat":1,Nausea:1},redFlags:["SpO2 <94%","Respiratory distress","Confusion","Unable to eat/drink"],firstLine:"Mild: self-isolate, symptomatic (Paracetamol, fluids). Moderate-severe (at risk): Nirmatrelvir/Ritonavir (Paxlovid) within 5d. Hospitalised: Dexamethasone 6mg OD x10d if O2 required. Prone positioning. Anticoagulation per protocol.",investigations:"Lateral flow/PCR, SpO2, FBC, CRP, ferritin, D-dimer, U&E, LFTs, CXR, CT chest if severe. IL-6 if available."},
+{name:"HIV Infection",cat:"Infectious Disease",symptoms:{Fatigue:3,"Weight loss":3,Fever:2,"Night sweats":2,Diarrhoea:2,Rash:1,"Sore throat":1,"Lump in neck":2,"Muscle pain":1},redFlags:["Opportunistic infections","CD4 <200","AIDS-defining illness"],firstLine:"Refer HIV specialist immediately. ART initiation: Bictegravir/Emtricitabine/TAF (single tablet regimen, first-line). Start regardless of CD4 count (NICE). Partner notification. Annual STI screen. Vaccinations (pneumococcal, HPV, influenza, hepatitis B).",investigations:"HIV Ag/Ab combo test (4th gen), confirmatory test, CD4 count, HIV viral load, FBC, U&E, LFTs, lipids, HbA1c, hepatitis B/C serology, syphilis, toxoplasma, CMV serology, CXR."},
+
+// ─── MSK (EXPANDED) ─────────────
+{name:"Fibromyalgia",cat:"MSK",symptoms:{"Widespread pain":3,Fatigue:3,Insomnia:2,"Difficulty concentrating":2,"Low mood":2,Headache:1,"Numbness/tingling":1,Bloating:1},redFlags:["Inflammatory markers elevated (suggests alternative diagnosis)","Progressive weakness","Weight loss"],firstLine:"Education + self-management. Graded aerobic exercise programme (most evidence). CBT for pain management. Amitriptyline 10-25mg nocte. If inadequate: Duloxetine 60mg OD or Pregabalin 75mg BD→300mg BD. NOT opioids.",investigations:"Clinical diagnosis (widespread pain >3 months). FBC, ESR, CRP, TFTs, calcium, vitamin D to exclude other causes. Normal bloods support diagnosis."},
+{name:"Lateral Epicondylitis (Tennis Elbow)",cat:"MSK",symptoms:{"Elbow pain":3,"Muscle pain":1},redFlags:["Trauma history","Locking/instability","Red hot joint"],firstLine:"Self-limiting (6-12mo). Activity modification, avoid repetitive gripping. Counterforce brace. Physiotherapy (eccentric exercises). Analgesia: topical NSAID. If refractory >6wk: corticosteroid injection (Triamcinolone 20mg + Lidocaine). PRP injection if recurrent.",investigations:"Clinical diagnosis (tender lateral epicondyle, pain on resisted wrist extension). X-ray if trauma. USS/MRI only if refractory or diagnostic doubt."},
+{name:"Plantar Fasciitis",cat:"MSK",symptoms:{"Heel pain":3,"Muscle pain":1},redFlags:["Night pain","Weight loss","Bilateral heel pain in young adult (spondyloarthropathy)"],firstLine:"Self-limiting (most resolve 6-18mo). Stretching exercises (calf+plantar fascia). Supportive footwear with cushioned heel. Ice rolling. If persists >6wk: insoles, night splint. Corticosteroid injection if refractory. Rarely: shockwave therapy.",investigations:"Clinical diagnosis (worse first steps in morning, tender medial calcaneum). X-ray if trauma. USS if diagnostic doubt. Consider ESR/CRP/HLA-B27 if bilateral or young patient."},
+
+// ─── PAEDIATRICS ─────────────────
+{name:"Croup",cat:"Paediatrics",symptoms:{"Barking cough":3,Stridor:3,Fever:2,Hoarse:2,"Shortness of breath":2,"Runny nose":1},redFlags:["Stridor at rest","Severe respiratory distress","Drooling","Cyanosis","Altered consciousness"],firstLine:"Mild (no stridor at rest): supportive, fluids, Paracetamol. Moderate-severe: single dose oral Dexamethasone 0.15mg/kg (BNF) — effective for 24-48h. Severe: nebulised Adrenaline 5ml 1:1000 + Dexamethasone + hospital admission. Exclude epiglottitis.",investigations:"Clinical diagnosis. Steeple sign on AP neck X-ray (not routinely needed). SpO2 if respiratory distress. Do NOT examine throat if epiglottitis suspected."},
+{name:"Bronchiolitis",cat:"Paediatrics",symptoms:{Cough:3,Wheezing:3,"Shortness of breath":3,Fever:1,"Runny nose":2,"Loss of appetite":2},redFlags:["Apnoea","SpO2 <92%","Inadequate fluid intake","Respiratory rate >70","Premature infant"],firstLine:"Supportive: ensure adequate hydration (NG if unable to feed), minimal handling. Supplemental O2 if SpO2 <92% (NICE). NO routine bronchodilators, steroids, or antibiotics. High-flow nasal cannula if escalating. Peak illness day 3-5. Most resolve 10-14 days.",investigations:"Clinical diagnosis (infant <12mo, viral prodrome, wheeze+crackles). NPA for RSV if needed for cohorting. CXR only if atypical/severe. FBC, CRP only if secondary infection suspected."},
+{name:"Febrile Seizures",cat:"Paediatrics",symptoms:{Seizures:3,Fever:3,"Loss of consciousness":2,Confusion:1},redFlags:["Focal features","Duration >15min","Repeated within 24h","Meningeal signs","Age <6mo","Complex febrile seizure"],firstLine:"During seizure: recovery position, don't restrain. >5 min: buccal Midazolam 0.5mg/kg (or PR Diazepam 0.5mg/kg). Treat fever source: Paracetamol 15mg/kg. Reassure parents — simple febrile seizures have excellent prognosis, no epilepsy risk increase. Discharge with safety-net advice.",investigations:"Identify fever source. LP if meningitis suspected or <12mo with no clear source. FBC, CRP, blood culture, urine MC&S. EEG/MRI NOT needed for simple febrile seizures."},
+
+// ─── OPHTHALMOLOGY (EXPANDED) ────
+{name:"Acute Angle-Closure Glaucoma",cat:"Ophthalmology",symptoms:{"Eye pain":3,"Red eye with pain":3,"Blurred vision":3,Headache:2,Nausea:2,Vomiting:2,"Visual field loss":1},redFlags:["ALL acute glaucoma is an emergency — risk of permanent vision loss"],firstLine:"Emergency ophthalmology referral. Initial: Pilocarpine 2% drops q15min x1h (constricts pupil). Timolol 0.5% drop. Acetazolamide 500mg IV/PO stat to reduce IOP. Lie patient supine. Definitive: laser peripheral iridotomy.",investigations:"IOP measurement (>40mmHg typical), slit lamp examination, gonioscopy, visual acuity, visual fields. Ophthalmology assessment."},
+{name:"Anterior Uveitis",cat:"Ophthalmology",symptoms:{"Eye pain":3,"Red eye with pain":3,Photophobia:3,"Blurred vision":2,"Eye redness":2},redFlags:["Bilateral","Recurrent","Hypopyon","Associated systemic disease"],firstLine:"Urgent ophthalmology referral (same day). Topical steroids: Prednisolone 1% drops hourly initially (ophthalmology to prescribe). Cycloplegic: Cyclopentolate 1% TDS (pain relief + prevent synechiae). Investigate underlying cause if recurrent.",investigations:"Ophthalmology: slit lamp (cells/flare in anterior chamber). If recurrent: HLA-B27, ACE level, CXR (sarcoidosis), syphilis serology, ANA, ESR, CRP."},
+{name:"Corneal Abrasion",cat:"Ophthalmology",symptoms:{"Eye pain":3,"Eye redness":2,Photophobia:2,"Blurred vision":1,"Excessive sweating":0},redFlags:["Penetrating injury","Organic material (fungal risk)","Contact lens related","Visible foreign body"],firstLine:"Chloramphenicol 0.5% drops QDS x5d (prophylactic). Simple abrasion: heals 24-48h. Analgesia: Paracetamol + Ibuprofen. Do NOT patch. If contact lens related: Ofloxacin 0.3% drops QDS (pseudomonas cover). Review 24h.",investigations:"Fluorescein staining with blue light (epithelial defect), visual acuity, evert upper lid (exclude foreign body). Slit lamp if available. Refer ophthalmology if large/central/non-healing."},
+
+// ─── ENT (EXPANDED) ─────────────
+{name:"Acute Tonsillitis",cat:"ENT",symptoms:{"Sore throat":3,Fever:3,Dysphagia:2,Headache:1,"Lump in neck":1,"Ear pain":1},redFlags:["Peritonsillar abscess (quinsy)","Stridor","Unable to swallow saliva","Bilateral tonsillar enlargement with airway compromise"],firstLine:"Centor/FeverPAIN score. Most viral — supportive: Paracetamol, fluids, rest. If Centor ≥3 or FeverPAIN ≥4: Phenoxymethylpenicillin 500mg QDS x5-10d. Penicillin allergy: Clarithromycin 250mg BD. Avoid Amoxicillin if EBV suspected (rash). Quinsy: aspiration + IV antibiotics.",investigations:"Centor/FeverPAIN scoring. Throat swab if recurrent. FBC + Monospot if EBV suspected. Refer ENT if recurrent (≥7 episodes/yr or ≥5/yr x2yr)."},
+{name:"Epistaxis",cat:"ENT",symptoms:{Nosebleed:3,Dizziness:1,Pallor:1},redFlags:["Posterior bleed","Haemodynamic instability","Anticoagulant use","Recurrent unilateral"],firstLine:"First aid: pinch soft part of nose firmly x15min, lean forward, spit blood out. Anterior: Naseptin cream (chlorhexidine+neomycin) BD x2wk. If not stopping: anterior nasal packing (Rapid Rhino). Cautery with silver nitrate if visible vessel. Posterior bleed: A&E + posterior packing.",investigations:"BP, FBC, coagulation (if on anticoagulants or recurrent). Group & save if significant. Nasendoscopy (ENT) if recurrent unilateral (exclude malignancy)."},
+{name:"Laryngitis",cat:"ENT",symptoms:{"Hoarse voice":3,Cough:2,"Sore throat":2,Fever:1,Fatigue:1},redFlags:["Hoarseness >3 weeks (2ww laryngeal cancer)","Stridor","Weight loss","Smoker >45y"],firstLine:"Self-limiting (viral, 1-2 weeks). Voice rest, hydration, steam inhalation, avoid irritants (smoking, alcohol). Paracetamol for pain. If >3 weeks hoarseness: urgent 2-week-wait ENT referral (NICE — exclude laryngeal malignancy). NO antibiotics for simple laryngitis.",investigations:"Usually none if <3wk. If persistent: urgent ENT referral for laryngoscopy. Consider CXR if smoker."},
+
+// ─── UROLOGY (EXPANDED) ─────────
+{name:"Acute Prostatitis",cat:"Urology",symptoms:{Fever:3,"Painful urination":3,"Frequent urination":2,"Perineal pain":3,"Back pain":1,"Urinary urgency":2,Nausea:1,"Muscle pain":1},redFlags:["Urinary retention","Sepsis","Prostatic abscess"],firstLine:"Ciprofloxacin 500mg BD x14d (BNF) if acute bacterial — good prostatic penetration. Alternative: Trimethoprim 200mg BD x14d (less penetration). If severe/sepsis: IV antibiotics + hospital. Paracetamol + NSAID for pain. Alpha-blocker: Tamsulosin 400mcg if voiding difficulty.",investigations:"MSU MC&S, FBC, CRP, blood cultures if febrile, PSA (will be raised acutely — defer 6wk for baseline), post-void residual USS."},
+{name:"Epididymitis",cat:"Urology",symptoms:{"Testicular pain":3,"Testicular swelling":3,Fever:2,"Painful urination":1,"Urethral discharge":1},redFlags:["Testicular torsion (sudden onset <6h in young)","Abscess","Bilateral"],firstLine:"<35y (likely STI): Ceftriaxone 1g IM stat + Doxycycline 100mg BD x10-14d. >35y (likely coliform): Ciprofloxacin 500mg BD x10-14d or Ofloxacin 200mg BD x14d. Scrotal support, rest, analgesia. STI screen + contact tracing if indicated.",investigations:"Urine MC&S, NAAT for chlamydia+gonorrhoea, FBC, CRP. USS scrotum (Doppler) if torsion cannot be excluded — do NOT delay surgical review for USS if torsion likely."},
+{name:"Testicular Torsion",cat:"Urology",symptoms:{"Testicular pain":3,"Testicular swelling":3,Nausea:2,Vomiting:2,"Abdominal pain":1},redFlags:["ALL suspected torsion is a surgical emergency — 6h window for viability"],firstLine:"Surgical emergency — do NOT delay for investigations. Immediate urology referral for scrotal exploration + orchidopexy (within 6h). Manual detorsion may be attempted while awaiting theatre (rotate outward — 'open the book'). Contralateral fixation at same procedure.",investigations:"Clinical diagnosis — do NOT delay for USS. If USS done: absent/reduced blood flow on Doppler. Urinalysis to exclude infection."},
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+// DRUG DATABASE (~80 drugs)
+// ═══════════════════════════════════════════════════════════════════════
+const DRUGS=[
+// Analgesics
+{name:"Paracetamol",cat:"Analgesic",bnf:"0.5-1g q4-6h, max 4g/24h. Reduce if <50kg or hepatic impairment.",cautions:"Hepatotoxicity in OD, hepatic impairment, chronic alcohol"},
+{name:"Ibuprofen",cat:"NSAID",bnf:"200-400mg TDS. Max 2.4g/d. With food + PPI cover.",cautions:"GI bleeding, renal impairment, CV risk, asthma, avoid with anticoag"},
+{name:"Naproxen",cat:"NSAID",bnf:"250-500mg BD. Max 1g/d. With food + PPI.",cautions:"As ibuprofen. Slightly lower CV risk (NICE preference)"},
+{name:"Diclofenac",cat:"NSAID",bnf:"50mg TDS or 75mg BD. Max 150mg/d. IM: 75mg. PR: 100mg.",cautions:"Highest CV risk of NSAIDs. GI bleeding, renal. First-line for biliary/renal colic (IM)"},
+{name:"Codeine",cat:"Opioid",bnf:"30-60mg q4-6h. Max 240mg/d. Short course only.",cautions:"Constipation, respiratory depression, dependence, ultra-rapid metabolisers"},
+{name:"Tramadol",cat:"Opioid",bnf:"50-100mg q4-6h. Max 400mg/d.",cautions:"Seizure risk, serotonin syndrome with SSRIs, dependence"},
+{name:"Amitriptyline",cat:"TCA",bnf:"10-25mg nocte for pain/migraine. Up to 75mg.",cautions:"Drowsiness, dry mouth, constipation, urinary retention, cardiac. Toxic in OD"},
+{name:"Gabapentin",cat:"Neuropathic",bnf:"300mg OD day1, 300mg BD day2, 300mg TDS day3. Max 3.6g/d.",cautions:"Controlled drug. Dizziness, drowsiness, renal dose adjust"},
+{name:"Pregabalin",cat:"Neuropathic",bnf:"75mg BD initially. Max 600mg/d in 2 doses.",cautions:"Controlled drug. Dizziness, drowsiness, weight gain, renal adjust"},
+// CV drugs
+{name:"Ramipril",cat:"ACE inhibitor",bnf:"1.25mg OD initially→10mg. Max 10mg/d.",cautions:"First-dose hypotension, renal, hyperkalaemia, dry cough. CI: pregnancy, bilateral RAS"},
+{name:"Lisinopril",cat:"ACE inhibitor",bnf:"10mg OD initially→20mg. Max 80mg/d.",cautions:"As Ramipril"},
+{name:"Losartan",cat:"ARB",bnf:"50mg OD. Max 100mg/d. Use if ACE-i cough.",cautions:"Hyperkalaemia, renal impairment. CI: pregnancy"},
+{name:"Amlodipine",cat:"CCB",bnf:"5mg OD, max 10mg.",cautions:"Ankle oedema, headache, flushing"},
+{name:"Diltiazem",cat:"CCB (rate-limiting)",bnf:"120-360mg daily (MR preparations vary).",cautions:"Bradycardia, heart block. NOT with beta-blockers. NOT in HF"},
+{name:"Bisoprolol",cat:"Beta-blocker",bnf:"1.25-5mg OD (HF), 5-10mg OD (HTN). Max 20mg.",cautions:"Asthma (CI), bradycardia, first-dose in HF. Withdraw gradually"},
+{name:"Atenolol",cat:"Beta-blocker",bnf:"25-50mg OD, max 100mg.",cautions:"Asthma (CI), bradycardia, PVD. Renal dose adjust"},
+{name:"Propranolol",cat:"Beta-blocker",bnf:"40mg BD-TDS (anxiety/migraine). Max 160mg/d for migraine.",cautions:"Asthma (CI), diabetes (masks hypos), Raynaud's"},
+{name:"Atorvastatin",cat:"Statin",bnf:"20mg OD (primary), 80mg OD (secondary). Nocte.",cautions:"Hepatic, myopathy/rhabdomyolysis. LFTs at 3 and 12mo"},
+{name:"Aspirin",cat:"Antiplatelet",bnf:"75mg OD (secondary prevention). 300mg loading ACS.",cautions:"GI bleeding, peptic ulcer, asthma, Reye syndrome in children"},
+{name:"Clopidogrel",cat:"Antiplatelet",bnf:"75mg OD. 300mg loading ACS.",cautions:"Bleeding, avoid with omeprazole (reduced efficacy)"},
+{name:"Apixaban",cat:"DOAC",bnf:"5mg BD (AF). 2.5mg BD if ≥2 of: age≥80, wt≤60kg, Cr≥133. DVT: 10mg BD x7d then 5mg BD.",cautions:"Bleeding, renal (avoid CrCl<15), hepatic"},
+{name:"Warfarin",cat:"Anticoagulant",bnf:"Dose per INR. Target 2-3 (AF), 2.5-3.5 (valves).",cautions:"Bleeding, many interactions, teratogenic, INR monitoring"},
+{name:"Furosemide",cat:"Loop diuretic",bnf:"20-40mg OD, titrate. Max 80mg OD oral.",cautions:"Hypokalaemia, hyponatraemia, dehydration, gout, ototoxicity"},
+{name:"Spironolactone",cat:"MRA",bnf:"25mg OD (HF). 50-200mg (hyperaldosteronism).",cautions:"Hyperkalaemia (esp with ACE-i), gynaecomastia, renal. Monitor K+ 1wk, 4wk"},
+{name:"Indapamide",cat:"Thiazide-like",bnf:"2.5mg OD (HTN step 3).",cautions:"Hypokalaemia, hyponatraemia, gout. Monitor U&E"},
+{name:"GTN spray",cat:"Nitrate",bnf:"400mcg SL PRN for angina. Repeat after 5min. Max 3 doses.",cautions:"Headache, hypotension. CI with PDE5 inhibitors (sildenafil)"},
+{name:"Isosorbide mononitrate",cat:"Nitrate",bnf:"30-60mg MR OD.",cautions:"Headache, hypotension, tolerance (asymmetric dosing)"},
+{name:"Dapagliflozin",cat:"SGLT2 inhibitor",bnf:"10mg OD.",cautions:"DKA (even normoglycaemic), UTI, genital thrush, dehydration. Check eGFR"},
+// Diabetes
+{name:"Metformin",cat:"Antidiabetic",bnf:"500mg OD-BD initially, max 2g/d. With meals.",cautions:"Renal (reduce eGFR 30-45, stop <30), lactic acidosis, withhold before contrast"},
+{name:"Gliclazide",cat:"Antidiabetic",bnf:"40-80mg daily, max 320mg. With breakfast.",cautions:"Hypoglycaemia, hepatic, elderly"},
+{name:"Sitagliptin",cat:"DPP-4 inhibitor",bnf:"100mg OD. 50mg if eGFR 30-45, 25mg if <30.",cautions:"Pancreatitis (rare), joint pain"},
+{name:"Empagliflozin",cat:"SGLT2 inhibitor",bnf:"10mg OD, max 25mg.",cautions:"As dapagliflozin. CV and renal benefit in T2DM+CVD"},
+// Respiratory
+{name:"Salbutamol",cat:"Bronchodilator",bnf:"100-200mcg PRN via pMDI (2-4 puffs). Neb: 2.5-5mg.",cautions:"Tremor, tachycardia, hypokalaemia. >3x/wk = review control"},
+{name:"Beclometasone",cat:"ICS",bnf:"200-400mcg BD (standard). 100-200mcg BD (low).",cautions:"Oral candidiasis (rinse after), hoarseness, adrenal suppression high dose"},
+{name:"Montelukast",cat:"LTRA",bnf:"10mg nocte (adults). 5mg chewable (6-14y).",cautions:"Neuropsychiatric effects (mood changes, sleep disturbance) — warn patient"},
+{name:"Tiotropium",cat:"LAMA",bnf:"18mcg OD via HandiHaler or 5mcg OD Respimat.",cautions:"Urinary retention, glaucoma, dry mouth"},
+{name:"Ipratropium",cat:"SAMA",bnf:"Neb: 500mcg QDS. MDI: 20-40mcg TDS-QDS.",cautions:"Glaucoma (nebulised), urinary retention"},
+// GI
+{name:"Omeprazole",cat:"PPI",bnf:"20mg OD (GORD), 20mg BD (H.pylori). Max 40mg. Review 4-8wk.",cautions:"Long-term: hypomagnesaemia, osteoporosis, C.diff, B12 deficiency"},
+{name:"Lansoprazole",cat:"PPI",bnf:"15-30mg OD before food.",cautions:"As omeprazole. Fewer interactions. Use with clopidogrel instead of omeprazole"},
+{name:"Domperidone",cat:"Anti-emetic",bnf:"10mg TDS. Max 30mg/d. Max 1 week.",cautions:"QT prolongation (MHRA). Lowest dose, shortest duration. CI: hepatic impairment"},
+{name:"Ondansetron",cat:"Anti-emetic",bnf:"4-8mg q8h PO/IV. Max 16mg/d.",cautions:"QT prolongation, constipation, headache"},
+{name:"Metoclopramide",cat:"Anti-emetic",bnf:"10mg TDS. Max 5 days (MHRA).",cautions:"Extrapyramidal effects (esp young), max 5 days"},
+{name:"Loperamide",cat:"Anti-diarrhoeal",bnf:"4mg stat then 2mg after each loose stool. Max 16mg/d.",cautions:"Avoid if fever/bloody diarrhoea. Avoid in acute colitis"},
+{name:"Mebeverine",cat:"Antispasmodic",bnf:"135mg TDS before meals.",cautions:"Few side effects. Not in paralytic ileus"},
+{name:"Lactulose",cat:"Osmotic laxative",bnf:"15ml BD, adjust to response.",cautions:"Bloating, flatulence. May take 2-3 days to work"},
+{name:"Macrogol (Movicol)",cat:"Osmotic laxative",bnf:"1-3 sachets daily in 125ml water each.",cautions:"Well tolerated. Faecal impaction: 8 sachets/d for max 3d"},
+// Antibiotics
+{name:"Amoxicillin",cat:"Antibiotic",bnf:"500mg TDS x5d (pneumonia). 250mg TDS x5d (URTI).",cautions:"Penicillin allergy, mononucleosis rash, C.diff"},
+{name:"Co-amoxiclav",cat:"Antibiotic",bnf:"625mg TDS x5-7d. 1.2g IV TDS.",cautions:"Penicillin allergy, cholestatic jaundice (can occur up to 6wk after), C.diff"},
+{name:"Flucloxacillin",cat:"Antibiotic",bnf:"500mg QDS x5-7d (cellulitis). Take on empty stomach.",cautions:"Penicillin allergy, cholestatic hepatitis (esp >14d course)"},
+{name:"Phenoxymethylpenicillin",cat:"Antibiotic",bnf:"500mg QDS x5d (sore throat, sinusitis).",cautions:"Penicillin allergy"},
+{name:"Doxycycline",cat:"Antibiotic",bnf:"200mg stat then 100mg OD. Take upright with water.",cautions:"Photosensitivity, oesophageal ulceration, avoid in pregnancy/children"},
+{name:"Clarithromycin",cat:"Antibiotic",bnf:"250-500mg BD x7d. 500mg BD H.pylori.",cautions:"QT prolongation, hepatic, many interactions (statins, warfarin)"},
+{name:"Azithromycin",cat:"Antibiotic",bnf:"500mg OD x3d or 500mg day1 then 250mg OD x4d.",cautions:"QT prolongation, hepatic. Fewer interactions than clarithromycin"},
+{name:"Trimethoprim",cat:"Antibiotic",bnf:"200mg BD x3d (uncomplicated UTI women), 7d (men).",cautions:"Folate deficiency, hyperkalaemia with ACE-i/ARB"},
+{name:"Nitrofurantoin",cat:"Antibiotic",bnf:"100mg MR BD x3d (UTI). 50mg QDS prophylaxis.",cautions:"Renal (avoid eGFR<45), pulmonary reactions, peripheral neuropathy"},
+{name:"Ciprofloxacin",cat:"Antibiotic",bnf:"500mg BD x3-7d. UTI: 250mg BD x3d.",cautions:"Tendon damage, QT, CNS effects, avoid in epilepsy. Not first-line for UTI"},
+{name:"Metronidazole",cat:"Antibiotic",bnf:"400mg TDS x5-7d. 400mg BD x5d (BV).",cautions:"Avoid alcohol (disulfiram reaction), neuropathy if prolonged, metallic taste"},
+{name:"Lymecycline",cat:"Antibiotic",bnf:"408mg OD x max 3 months (acne).",cautions:"Photosensitivity, avoid in pregnancy"},
+// Antifungals
+{name:"Fluconazole",cat:"Antifungal",bnf:"150mg single dose (vaginal candidiasis). 50mg OD x7-14d (oral/oesophageal).",cautions:"Hepatotoxicity, QT prolongation, drug interactions (warfarin, statins)"},
+{name:"Clotrimazole",cat:"Antifungal",bnf:"Cream 1% BD x2-4wk. Pessary 500mg single dose (vaginal).",cautions:"Local irritation. Avoid in first trimester (pessary)"},
+{name:"Terbinafine",cat:"Antifungal",bnf:"250mg OD x6wk (fingernails), 3mo (toenails). Cream 1% OD x1-2wk.",cautions:"Hepatotoxicity, taste disturbance, rash. LFTs before and during oral course"},
+// Antivirals
+{name:"Aciclovir",cat:"Antiviral",bnf:"800mg 5x daily x7d (shingles). 200mg 5x daily x5d (herpes simplex). 400mg BD (suppression).",cautions:"Renal dose adjust, adequate hydration, crystalluria"},
+// Thyroid
+{name:"Levothyroxine",cat:"Thyroid",bnf:"25-50mcg OD initially. Titrate 25mcg q4-6wk.",cautions:"Cardiac (start low), interactions (Ca, Fe — separate 4h), overtreatment→AF/osteoporosis"},
+{name:"Carbimazole",cat:"Anti-thyroid",bnf:"15-40mg daily initially. Titrate on TFTs.",cautions:"Agranulocytosis (warn re sore throat→urgent FBC), hepatotoxicity, rash"},
+// Gout
+{name:"Allopurinol",cat:"Xanthine oxidase inhibitor",bnf:"100mg OD initially, ↑100mg/mo. Target urate <360. Max 900mg.",cautions:"NOT during acute gout. Hypersensitivity, renal adjust, azathioprine interaction"},
+{name:"Colchicine",cat:"Anti-gout",bnf:"500mcg BD-TDS acute gout, max 4d.",cautions:"Diarrhoea (dose-limiting), neuromyopathy, narrow therapeutic index"},
+// Psychiatry
+{name:"Sertraline",cat:"SSRI",bnf:"50mg OD initially→100-200mg at 4wk. Max 200mg.",cautions:"Serotonin syndrome, GI bleeding with NSAIDs, hyponatraemia (elderly), initial worsening <30y"},
+{name:"Escitalopram",cat:"SSRI",bnf:"10mg OD, max 20mg. Elderly: max 10mg.",cautions:"QT prolongation (dose-dependent), as sertraline"},
+{name:"Fluoxetine",cat:"SSRI",bnf:"20mg OD, max 60mg. Long half-life.",cautions:"CYP2D6 inhibitor — many interactions. Avoid with tamoxifen"},
+{name:"Mirtazapine",cat:"NaSSA",bnf:"15mg nocte initially, max 45mg. Sedating at lower doses.",cautions:"Weight gain, sedation, rarely agranulocytosis. Useful if insomnia+depression"},
+{name:"Diazepam",cat:"Benzodiazepine",bnf:"2-5mg TDS PRN (anxiety). Max 2-4 weeks.",cautions:"Dependence, drowsiness, respiratory depression, falls in elderly. Short course only"},
+{name:"Zopiclone",cat:"Z-drug",bnf:"3.75-7.5mg nocte. Max 4 weeks.",cautions:"Dependence, metallic taste, next-day impairment. Short course only"},
+// Dermatology
+{name:"Hydrocortisone 1% cream",cat:"Topical steroid (mild)",bnf:"Apply thinly BD x7-14d. Max 1 week on face.",cautions:"Skin atrophy with prolonged use, avoid on face long-term"},
+{name:"Betamethasone 0.1% cream",cat:"Topical steroid (potent)",bnf:"Apply thinly OD-BD x max 2 weeks. Not on face.",cautions:"Skin atrophy, striae, telangiectasia. Step down to milder steroid"},
+{name:"Emollients (various)",cat:"Emollient",bnf:"Apply liberally and frequently QDS minimum. 250-500g/wk for eczema.",cautions:"Fire risk with paraffin-based. Apply before topical steroids"},
+// Supplements
+{name:"Ferrous Sulphate",cat:"Iron",bnf:"200mg TDS (65mg elemental/tab). Empty stomach.",cautions:"GI upset, black stools, constipation. Take with vitamin C. Separate from levothyroxine 4h"},
+{name:"Folic Acid",cat:"Supplement",bnf:"5mg daily x4mo (deficiency). 400mcg daily (preconception).",cautions:"Always check B12 before treating (masks B12 deficiency)"},
+{name:"Colecalciferol (Vit D)",cat:"Supplement",bnf:"Loading: 20,000-50,000 IU/wk x6-7wk. Maintenance: 800-2000 IU/d.",cautions:"Monitor calcium if high-dose. Caution in sarcoidosis, renal stones"},
+// Migraine
+{name:"Sumatriptan",cat:"Triptan",bnf:"50-100mg PO at onset. Repeat after 2h. Max 300mg/24h.",cautions:"CV disease (CI), uncontrolled HTN, not within 24h of another triptan"},
+// Urology
+{name:"Tamsulosin",cat:"Alpha-blocker",bnf:"400mcg OD (BPH). Also used for MET (stone passage).",cautions:"Postural hypotension, intraoperative floppy iris, retrograde ejaculation"},
+{name:"Finasteride",cat:"5-alpha reductase inhibitor",bnf:"5mg OD (BPH). Takes 3-6mo for effect.",cautions:"Decreased libido, erectile dysfunction, gynecomastia. Teratogenic — women should not handle crushed tabs"},
+// Antimalarials / tropical
+{name:"Chloroquine",cat:"Antimalarial",bnf:"P.vivax: 600mg stat then 300mg at 6,24,48h.",cautions:"Retinopathy with prolonged use, cardiac. Check G6PD before primaquine"},
+{name:"Artemether-Lumefantrine",cat:"Antimalarial (ACT)",bnf:"4 tabs stat then at 8,24,36,48,60h (total 24 tabs x3d).",cautions:"QT prolongation, hepatic. First-line for P. falciparum"},
+// Neurology - expanded
+{name:"Lamotrigine",cat:"Antiepileptic",bnf:"25mg OD x2wk→50mg OD x2wk→100-200mg BD. Slow titration essential.",cautions:"Stevens-Johnson syndrome (especially with valproate — halve starting dose), rash, hepatic"},
+{name:"Sodium Valproate",cat:"Antiepileptic",bnf:"300mg BD initially→600mg BD. Max 2.5g/day.",cautions:"TERATOGENIC — Pregnancy Prevention Programme mandatory for women. Hepatotoxicity, pancreatitis, weight gain, tremor, hair loss"},
+{name:"Levetiracetam",cat:"Antiepileptic",bnf:"250mg BD initially→750mg-1.5g BD. Max 3g/day.",cautions:"Psychiatric effects (irritability, aggression, depression), drowsiness. No hepatic metabolism — fewer interactions"},
+{name:"Donepezil",cat:"Cholinesterase inhibitor",bnf:"5mg nocte initially→10mg after 4-6wk. Max 10mg.",cautions:"Bradycardia, GI upset, muscle cramps, insomnia. ECG before starting. CI: sick sinus syndrome"},
+{name:"Memantine",cat:"NMDA antagonist",bnf:"5mg OD wk1→10mg OD wk2→15mg OD wk3→20mg OD. Max 20mg.",cautions:"Dizziness, headache, constipation. Renal dose adjust. For moderate-severe dementia"},
+// Psychiatry - expanded
+{name:"Lithium",cat:"Mood stabiliser",bnf:"400mg nocte initially. Target 0.6-0.8mmol/L (maintenance). Max 2g/d.",cautions:"Narrow therapeutic index. Toxicity >1.5mmol/L. Monitor levels 5-7d, then weekly→3-monthly. TFTs+renal 6-monthly. Dehydration, NSAIDs increase toxicity"},
+{name:"Chlordiazepoxide",cat:"Benzodiazepine",bnf:"Alcohol withdrawal: 30mg QDS day1, reducing over 7-10d (fixed schedule).",cautions:"Dependence, respiratory depression, hepatic impairment. Only for medically supervised detox"},
+{name:"Acamprosate",cat:"Alcohol relapse prevention",bnf:"666mg TDS (if >60kg). 333mg TDS (if <60kg). Start after detox.",cautions:"Renal impairment (CI if severe), diarrhoea. Continue if lapse occurs"},
+{name:"Naltrexone",cat:"Opioid antagonist",bnf:"50mg OD. Alternative to Acamprosate for alcohol relapse prevention.",cautions:"Hepatotoxicity, CI if current opioid use (precipitates withdrawal). LFTs before and during"},
+// GI - expanded
+{name:"Mesalazine",cat:"5-ASA",bnf:"UC maintenance: 1.2-2.4g daily. Acute flare: 2.4-4.8g daily.",cautions:"Renal monitoring (U&E at 3mo then annually), blood dyscrasias, lupus-like syndrome. Brand-specific dosing"},
+{name:"Azathioprine",cat:"Immunosuppressant",bnf:"Crohn's/UC: 2-2.5mg/kg OD. RA: 1-3mg/kg OD. Check TPMT first.",cautions:"Myelosuppression (FBC weekly x8wk then 3-monthly), hepatotoxicity, pancreatitis, allopurinol interaction (reduce dose 75%)"},
+// Infectious - expanded
+{name:"Oseltamivir",cat:"Neuraminidase inhibitor",bnf:"Treatment: 75mg BD x5d. Prophylaxis: 75mg OD x10d. Within 48h onset.",cautions:"Nausea, vomiting, headache. Renal dose adjust. Limited benefit if >48h"},
+{name:"Ceftriaxone",cat:"Antibiotic (3rd gen ceph)",bnf:"1-2g OD IV/IM. Meningitis: 2g BD. PID: 1g IM stat.",cautions:"Penicillin allergy (use with caution, ~1% cross-reactivity), C.diff, biliary sludging. Do NOT mix with calcium-containing IV fluids"},
+{name:"Dexamethasone",cat:"Corticosteroid",bnf:"Croup: 0.15mg/kg PO single dose. COVID: 6mg OD x10d. Meningitis: 0.15mg/kg QDS x4d.",cautions:"Hyperglycaemia, immunosuppression, GI effects. Short courses generally well tolerated"},
+// Other new
+{name:"Duloxetine",cat:"SNRI",bnf:"60mg OD (depression, GAD, neuropathic pain, fibromyalgia). Max 120mg.",cautions:"Nausea (common initially), hepatotoxicity (avoid in hepatic impairment), hypertension, serotonin syndrome"},
+{name:"Permethrin",cat:"Scabicide",bnf:"5% cream: apply whole body neck down, leave 8-12h, wash off. Repeat day 7.",cautions:"Skin irritation. Treat all household contacts. Itch may persist 4-6 weeks after successful treatment"},
+{name:"Pilocarpine eye drops",cat:"Miotic",bnf:"2% drops q15min x1h (acute glaucoma emergency).",cautions:"Blurred vision, headache, miosis. Used in acute angle-closure only"},
+{name:"Midazolam buccal",cat:"Benzodiazepine",bnf:"Seizures: 10mg buccal (adult). 0.5mg/kg (child). Single dose pre-hospital.",cautions:"Respiratory depression. Have flumazenil available. Training required for buccal admin"},
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTERACTION MATRIX (~65 pairs)
+// ═══════════════════════════════════════════════════════════════════════
+const INTERACTIONS=[
+["Ramipril","Spironolactone","major","Dual RAAS → severe hyperkalaemia","Monitor K+ closely"],
+["Ramipril","Ibuprofen","major","NSAID reduces ACE-i efficacy + renal risk","Avoid long-term NSAIDs"],
+["Ramipril","Naproxen","major","NSAID reduces ACE-i efficacy + renal risk","Avoid long-term NSAIDs"],
+["Ramipril","Diclofenac","major","NSAID reduces ACE-i efficacy + renal risk","Avoid long-term NSAIDs"],
+["Ramipril","Trimethoprim","moderate","Both ↑ serum K+","Monitor K+, short courses OK"],
+["Lisinopril","Spironolactone","major","Dual RAAS → hyperkalaemia","As Ramipril+Spiro"],
+["Lisinopril","Ibuprofen","major","NSAID reduces ACE-i efficacy + renal risk","As Ramipril+NSAID"],
+["Losartan","Spironolactone","major","Dual RAAS → hyperkalaemia","Monitor K+ closely"],
+["Losartan","Ibuprofen","major","NSAID reduces ARB efficacy + renal risk","Avoid long-term NSAIDs"],
+["Warfarin","Aspirin","major","↑ bleeding risk (pharmacodynamic)","Avoid unless indicated + PPI"],
+["Warfarin","Ibuprofen","major","↑ bleeding + INR elevation","Avoid NSAIDs with warfarin"],
+["Warfarin","Naproxen","major","↑ bleeding + INR elevation","Avoid NSAIDs with warfarin"],
+["Warfarin","Clarithromycin","major","CYP3A4 inhibition → ↑ INR","Monitor INR daily, reduce dose"],
+["Warfarin","Fluconazole","major","CYP2C9 inhibition → ↑ INR","Halve warfarin dose, monitor INR"],
+["Warfarin","Metronidazole","major","↑ anticoagulant effect","Reduce warfarin dose, monitor INR"],
+["Clopidogrel","Omeprazole","moderate","CYP2C19 inhibition reduces clopidogrel","Use Lansoprazole instead (MHRA)"],
+["Apixaban","Ibuprofen","moderate","↑ bleeding risk","Avoid if possible, short course only"],
+["Apixaban","Aspirin","moderate","↑ bleeding risk","Only combine if specifically indicated"],
+["Clarithromycin","Atorvastatin","major","CYP3A4 → ↑ statin → rhabdomyolysis","Suspend statin during course"],
+["Clarithromycin","Amlodipine","moderate","CYP3A4 → ↑ amlodipine levels","Monitor BP"],
+["Clarithromycin","Diltiazem","major","Dual CYP3A4 inhibition → bradycardia, hypotension","Avoid combination"],
+["Clarithromycin","Domperidone","major","Both prolong QT → arrhythmia","Avoid combination"],
+["Ciprofloxacin","Domperidone","major","Both prolong QT → arrhythmia","Avoid combination"],
+["Metformin","Ramipril","minor","Both beneficial T2DM+HTN. Ramipril renoprotective","Positive combination"],
+["Sertraline","Ibuprofen","moderate","↑ GI bleeding (SSRI+NSAID)","Add PPI cover"],
+["Sertraline","Naproxen","moderate","↑ GI bleeding (SSRI+NSAID)","Add PPI cover"],
+["Sertraline","Tramadol","major","Serotonin syndrome risk","Avoid combination"],
+["Fluoxetine","Amitriptyline","major","CYP2D6 inhibition → ↑ TCA + serotonin risk","Avoid or extreme caution"],
+["Fluoxetine","Tramadol","major","Serotonin syndrome risk","Avoid combination"],
+["Fluoxetine","Codeine","moderate","CYP2D6 inhibition reduces codeine→morphine conversion","Reduced analgesia"],
+["Escitalopram","Tramadol","major","Serotonin syndrome risk","Avoid combination"],
+["Escitalopram","Domperidone","moderate","Both may prolong QT","Avoid if possible"],
+["Amlodipine","Atorvastatin","minor","Mild ↑ statin via CYP3A4","Limit atorvastatin 20mg (MHRA)"],
+["Bisoprolol","Amlodipine","minor","Additive BP lowering","Standard combination, generally safe"],
+["Bisoprolol","Diltiazem","major","Severe bradycardia + AV block","Avoid combination"],
+["Prednisolone","Ibuprofen","major","Synergistic GI ulceration","Add PPI, avoid if possible"],
+["Prednisolone","Naproxen","major","Synergistic GI ulceration","Add PPI, avoid if possible"],
+["Prednisolone","Metformin","moderate","Steroids ↑ glucose","Monitor glucose, may need temp insulin"],
+["Prednisolone","Warfarin","moderate","↑ or ↓ INR unpredictably","Monitor INR closely"],
+["Levothyroxine","Ferrous Sulphate","moderate","Iron reduces thyroxine absorption","Separate by ≥4 hours"],
+["Levothyroxine","Omeprazole","minor","PPI may reduce thyroxine absorption","Take on empty stomach, monitor TSH"],
+["Levothyroxine","Calcium","moderate","Calcium reduces thyroxine absorption","Separate by ≥4 hours"],
+["Allopurinol","Azathioprine","major","Allopurinol inhibits XO → toxic azathioprine","Reduce azathioprine to 25% or avoid"],
+["Furosemide","Ramipril","moderate","Additive hypotension, renal risk","Monitor BP+U&E. Hold diuretic for first ACE-i dose"],
+["Codeine","Amitriptyline","moderate","Additive CNS depression + constipation","Lowest doses, short course"],
+["Propranolol","Salbutamol","moderate","BB opposes bronchodilator","Avoid propranolol in asthma"],
+["Methotrexate","Trimethoprim","major","Both antifolate → pancytopenia","Avoid combination"],
+["Methotrexate","Ibuprofen","major","NSAID reduces MTX excretion → toxicity","Avoid or extreme caution"],
+["Methotrexate","Naproxen","major","NSAID reduces MTX excretion → toxicity","Avoid or extreme caution"],
+["Gabapentin","Codeine","moderate","Additive CNS depression + respiratory","Lower doses, monitor"],
+["Pregabalin","Codeine","moderate","Additive CNS depression + respiratory","Lower doses, monitor"],
+["Diazepam","Codeine","major","Severe CNS+respiratory depression","Avoid if possible. Naloxone access"],
+["Diazepam","Tramadol","major","CNS depression + serotonergic risk","Avoid combination"],
+["Zopiclone","Codeine","moderate","Additive CNS depression","Avoid combination at night"],
+["Carbimazole","Warfarin","moderate","Hyperthyroidism affects warfarin metabolism","Monitor INR as thyroid normalises"],
+["Fluconazole","Atorvastatin","major","CYP → ↑ statin → rhabdomyolysis","Avoid or suspend statin"],
+["Ciprofloxacin","Terbinafine","minor","Minor CYP interaction","Usually clinically insignificant"],
+["Metronidazole","Alcohol","major","Disulfiram-like reaction","Avoid alcohol during + 48h after"],
+["GTN spray","Sildenafil","major","Severe hypotension → collapse","CI: nitrates + PDE5 inhibitors. 24h gap minimum"],
+["Dapagliflozin","Furosemide","moderate","Additive dehydration + hypotension","Monitor volume status, may need to reduce diuretic"],
+["Empagliflozin","Furosemide","moderate","Additive dehydration + hypotension","Monitor volume status"],
+["Chloroquine","Amiodarone","major","Both prolong QT","Avoid combination"],
+["Artemether-Lumefantrine","Clarithromycin","major","CYP3A4 inhibition + QT prolongation","Avoid combination"],
+// New interactions for expanded drugs
+["Lithium","Ibuprofen","major","NSAID reduces lithium excretion → toxicity","Avoid NSAIDs. If essential: monitor lithium level closely"],
+["Lithium","Naproxen","major","NSAID reduces lithium excretion → toxicity","Avoid NSAIDs. Monitor lithium level"],
+["Lithium","Diclofenac","major","NSAID reduces lithium excretion → toxicity","Avoid NSAIDs. Monitor lithium level"],
+["Lithium","Furosemide","major","Diuretic reduces lithium excretion → toxicity","Monitor lithium level, reduce dose if needed"],
+["Lithium","Ramipril","major","ACE-i reduces lithium excretion → toxicity","Monitor lithium level closely"],
+["Sodium Valproate","Lamotrigine","major","Valproate doubles lamotrigine levels → SJS risk","Halve lamotrigine starting dose and titration rate"],
+["Sodium Valproate","Aspirin","moderate","Displaced protein binding → increased valproate toxicity","Monitor levels"],
+["Azathioprine","Allopurinol","major","Allopurinol inhibits azathioprine metabolism → severe pancytopenia","Reduce azathioprine to 25% or avoid"],
+["Azathioprine","Trimethoprim","major","Both antifolate → pancytopenia","Avoid combination"],
+["Azathioprine","Warfarin","moderate","Azathioprine may reduce anticoagulant effect","Monitor INR"],
+["Lamotrigine","COCP","moderate","Oestrogen reduces lamotrigine levels by 50%","May need dose increase. Use progesterone-only methods"],
+["Levetiracetam","Methotrexate","moderate","Reduced methotrexate clearance","Monitor levels"],
+["Donepezil","Bisoprolol","moderate","Additive bradycardia","ECG monitoring, use lowest doses"],
+["Donepezil","Diltiazem","moderate","Additive bradycardia","Avoid or monitor closely"],
+["Duloxetine","Tramadol","major","Serotonin syndrome risk","Avoid combination"],
+["Duloxetine","Codeine","moderate","CYP2D6 inhibition reduces codeine → morphine conversion","Reduced analgesia"],
+["Mesalazine","Azathioprine","moderate","Mesalazine inhibits TPMT → increased azathioprine toxicity","Monitor FBC more frequently"],
+["Ceftriaxone","Warfarin","moderate","Increased anticoagulant effect","Monitor INR"],
+["Naltrexone","Codeine","major","Naltrexone blocks opioid effect completely","CI: current opioid use"],
+["Naltrexone","Tramadol","major","Naltrexone blocks opioid effect","CI: current opioid use"],
+["Oseltamivir","Warfarin","minor","Possible minor INR change","Monitor, usually insignificant"],
+["Dexamethasone","Ibuprofen","major","Synergistic GI ulceration","Add PPI, avoid if possible"],
+["Dexamethasone","Warfarin","moderate","Altered anticoagulant effect","Monitor INR"],
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+// RISK CALCULATORS (same as before)
+// ═══════════════════════════════════════════════════════════════════════
+const CALCS={
+wells_dvt:{name:'Wells — DVT',desc:'DVT probability',items:[{l:'Active cancer',s:1},{l:'Paralysis/paresis/recent immobilisation lower limb',s:1},{l:'Bedridden >3d or major surgery within 12wk',s:1},{l:'Localised tenderness deep venous system',s:1},{l:'Entire leg swollen',s:1},{l:'Calf swelling >3cm vs other leg',s:1},{l:'Pitting oedema (symptomatic leg)',s:1},{l:'Collateral superficial veins',s:1},{l:'Previously documented DVT',s:1},{l:'Alternative diagnosis as likely',s:-2}],interp:s=>s>=3?{r:'High',d:'~75%. Imaging.',c:'#DC2626'}:s>=1?{r:'Moderate',d:'~17%. D-dimer/imaging.',c:'#F59E0B'}:{r:'Low',d:'~5%. D-dimer.',c:'#059669'}},
+curb65:{name:'CURB-65',desc:'CAP severity',items:[{l:'Confusion',s:1},{l:'Urea >7 mmol/L',s:1},{l:'RR ≥30',s:1},{l:'SBP <90 or DBP ≤60',s:1},{l:'Age ≥65',s:1}],interp:s=>s>=3?{r:'Severe',d:'Mortality ~15-40%. ICU.',c:'#DC2626'}:s===2?{r:'Moderate',d:'Mortality ~9%. Inpatient.',c:'#F59E0B'}:{r:'Low',d:'Mortality ~1.5%. Outpatient.',c:'#059669'}},
+cha2ds2:{name:'CHA₂DS₂-VASc',desc:'AF stroke risk',items:[{l:'CHF/LV dysfunction',s:1},{l:'Hypertension',s:1},{l:'Age ≥75',s:2},{l:'Diabetes',s:1},{l:'Stroke/TIA/TE history',s:2},{l:'Vascular disease',s:1},{l:'Age 65-74',s:1},{l:'Female sex',s:1}],interp:s=>s>=2?{r:'High',d:'Anticoagulate.',c:'#DC2626'}:s===1?{r:'Moderate',d:'Consider anticoag.',c:'#F59E0B'}:{r:'Low',d:'No anticoag.',c:'#059669'}},
+qsofa:{name:'qSOFA',desc:'Quick sepsis screen',items:[{l:'RR ≥22',s:1},{l:'Altered mentation (GCS <15)',s:1},{l:'SBP ≤100',s:1}],interp:s=>s>=2?{r:'High',d:'Possible sepsis. Assess organs.',c:'#DC2626'}:{r:'Low',d:'Low risk. Clinical judgement.',c:'#059669'}},
+hasbled:{name:'HAS-BLED',desc:'Bleeding risk',items:[{l:'HTN (SBP >160)',s:1},{l:'Abnormal renal fn',s:1},{l:'Abnormal liver fn',s:1},{l:'Stroke hx',s:1},{l:'Bleeding hx',s:1},{l:'Labile INR',s:1},{l:'Elderly >65',s:1},{l:'Drugs (antiplatelet/NSAID)',s:1},{l:'Alcohol ≥8/wk',s:1}],interp:s=>s>=3?{r:'High',d:'Caution with anticoag.',c:'#DC2626'}:{r:'Low-Mod',d:'Relatively safe.',c:'#059669'}},
+heart:{name:'HEART',desc:'Chest pain risk',items:[{l:'History — highly suspicious',s:2},{l:'History — moderately suspicious',s:1},{l:'ECG — ST deviation',s:2},{l:'ECG — non-specific repolarisation',s:1},{l:'Age ≥65',s:2},{l:'Age 45-64',s:1},{l:'≥3 risk factors',s:2},{l:'1-2 risk factors',s:1},{l:'Troponin ≥3× normal',s:2},{l:'Troponin 1-3× normal',s:1}],interp:s=>s>=7?{r:'High',d:'MACE ~50-65%. Invasive.',c:'#DC2626'}:s>=4?{r:'Moderate',d:'MACE ~12-17%. Admit.',c:'#F59E0B'}:{r:'Low',d:'MACE ~1.6%. Discharge.',c:'#059669'}},
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// APP LOGIC (same rendering engine as before)
+// ═══════════════════════════════════════════════════════════════════════
+let mod='dx',dxSel=[],dxAge='',dxSex='Male',dxDur='any',dxResult=null,ehrData=null;
+let drugSel=[],drugResult=null;
+let riskSel='wells_dvt',riskChk={};
+let guideSel=null;
+let dxSearch='',drugSearch='';
+
+// Duration profiles: each disease mapped to likelihood per timeframe
+// 3=classic, 2=possible, 1=unlikely, 0=very unlikely
+// h=hours, d=days(1-7), w=weeks(1-4), m=months(1-3), c=chronic(3mo+)
+const DUR={
+// Haematology
+"Iron Deficiency Anaemia":{h:0,d:0,w:1,m:3,c:3},"Vitamin B12 Deficiency":{h:0,d:0,w:1,m:3,c:3},"Folate Deficiency":{h:0,d:0,w:1,m:3,c:3},
+// Endocrine
+"Type 2 Diabetes Mellitus":{h:0,d:0,w:1,m:3,c:3},"Hypothyroidism":{h:0,d:0,w:1,m:3,c:3},"Hyperthyroidism":{h:0,d:0,w:2,m:3,c:3},
+"Vitamin D Deficiency":{h:0,d:0,w:1,m:3,c:3},"PCOS":{h:0,d:0,w:0,m:2,c:3},
+// Respiratory
+"Community-Acquired Pneumonia":{h:1,d:3,w:2,m:0,c:0},"Acute Bronchitis":{h:0,d:3,w:3,m:1,c:0},
+"Asthma Exacerbation":{h:3,d:3,w:1,m:0,c:0},"COPD Exacerbation":{h:2,d:3,w:2,m:0,c:0},
+"Allergic Rhinitis":{h:1,d:2,w:3,m:3,c:3},"Obstructive Sleep Apnoea":{h:0,d:0,w:1,m:3,c:3},
+// Cardiovascular
+"Essential Hypertension":{h:0,d:0,w:0,m:2,c:3},"Stable Angina":{h:0,d:0,w:2,m:3,c:3},
+"Heart Failure":{h:0,d:1,w:2,m:3,c:3},"Atrial Fibrillation":{h:2,d:2,w:2,m:3,c:3},
+"Deep Vein Thrombosis":{h:2,d:3,w:2,m:0,c:0},"Pulmonary Embolism":{h:3,d:3,w:1,m:0,c:0},
+"Acute Pericarditis":{h:2,d:3,w:2,m:1,c:0},"Peripheral Arterial Disease":{h:0,d:0,w:1,m:3,c:3},
+// GI
+"GORD / Acid Reflux":{h:0,d:1,w:2,m:3,c:3},"Peptic Ulcer Disease":{h:0,d:1,w:3,m:3,c:2},
+"Irritable Bowel Syndrome":{h:0,d:0,w:1,m:3,c:3},"Acute Gastroenteritis":{h:3,d:3,w:1,m:0,c:0},
+"Gallstone Disease / Biliary Colic":{h:3,d:2,w:1,m:0,c:0},"Haemorrhoids":{h:0,d:1,w:2,m:3,c:3},
+"Coeliac Disease":{h:0,d:0,w:1,m:3,c:3},"Crohn's Disease":{h:0,d:1,w:2,m:3,c:3},
+"Ulcerative Colitis":{h:0,d:1,w:3,m:3,c:3},"Acute Appendicitis":{h:3,d:3,w:0,m:0,c:0},
+"Viral Hepatitis (Acute)":{h:0,d:2,w:3,m:2,c:0},"Liver Cirrhosis":{h:0,d:0,w:0,m:2,c:3},
+// Neurology
+"Migraine":{h:3,d:2,w:0,m:0,c:0},"Tension Headache":{h:3,d:2,w:1,m:1,c:2},
+"Bell's Palsy":{h:2,d:3,w:2,m:1,c:0},"BPPV / Vertigo":{h:3,d:3,w:2,m:1,c:0},
+"Peripheral Neuropathy":{h:0,d:0,w:1,m:3,c:3},"Sciatica":{h:1,d:2,w:3,m:3,c:2},
+"Epilepsy":{h:3,d:1,w:0,m:1,c:3},"TIA / Stroke":{h:3,d:3,w:0,m:0,c:0},
+"Dementia (Alzheimer's)":{h:0,d:0,w:0,m:2,c:3},"Carpal Tunnel Syndrome":{h:0,d:0,w:2,m:3,c:3},
+// MSK
+"Acute Low Back Pain":{h:2,d:3,w:3,m:1,c:0},"Osteoarthritis":{h:0,d:0,w:1,m:3,c:3},
+"Rheumatoid Arthritis":{h:0,d:0,w:2,m:3,c:3},"Acute Gout":{h:3,d:3,w:1,m:0,c:0},
+"Frozen Shoulder":{h:0,d:0,w:2,m:3,c:3},"Fibromyalgia":{h:0,d:0,w:1,m:3,c:3},
+"Lateral Epicondylitis (Tennis Elbow)":{h:0,d:1,w:3,m:3,c:2},"Plantar Fasciitis":{h:0,d:1,w:3,m:3,c:2},
+// Urology
+"Urinary Tract Infection":{h:2,d:3,w:1,m:0,c:0},"Kidney Stones / Renal Colic":{h:3,d:3,w:1,m:0,c:0},
+"Benign Prostatic Hyperplasia":{h:0,d:0,w:0,m:3,c:3},"Acute Prostatitis":{h:1,d:3,w:2,m:0,c:0},
+"Epididymitis":{h:2,d:3,w:2,m:0,c:0},"Testicular Torsion":{h:3,d:1,w:0,m:0,c:0},
+// Psychiatry
+"Depression":{h:0,d:0,w:2,m:3,c:3},"Generalised Anxiety Disorder":{h:0,d:0,w:1,m:3,c:3},
+"Panic Disorder":{h:3,d:1,w:1,m:2,c:3},"Insomnia":{h:0,d:1,w:2,m:3,c:3},
+"Bipolar Disorder":{h:0,d:2,w:3,m:2,c:3},"PTSD":{h:0,d:0,w:2,m:3,c:3},
+"OCD":{h:0,d:0,w:1,m:3,c:3},"Alcohol Dependence":{h:0,d:0,w:1,m:3,c:3},
+// ENT
+"Acute URTI / Common Cold":{h:1,d:3,w:2,m:0,c:0},"Acute Otitis Media":{h:2,d:3,w:1,m:0,c:0},
+"Acute Sinusitis":{h:0,d:2,w:3,m:1,c:0},"Acute Tonsillitis":{h:1,d:3,w:1,m:0,c:0},
+"Epistaxis":{h:3,d:2,w:1,m:1,c:1},"Laryngitis":{h:0,d:3,w:3,m:1,c:0},
+// Dermatology
+"Eczema / Atopic Dermatitis":{h:0,d:1,w:2,m:3,c:3},"Psoriasis":{h:0,d:0,w:1,m:3,c:3},
+"Urticaria / Hives":{h:3,d:3,w:2,m:1,c:1},"Cellulitis":{h:2,d:3,w:1,m:0,c:0},
+"Acne Vulgaris":{h:0,d:0,w:1,m:3,c:3},"Fungal Skin Infection / Tinea":{h:0,d:1,w:3,m:3,c:2},
+"Herpes Zoster / Shingles":{h:1,d:3,w:3,m:1,c:0},"Impetigo":{h:0,d:3,w:2,m:0,c:0},
+"Scabies":{h:0,d:0,w:3,m:3,c:1},"Rosacea":{h:0,d:0,w:1,m:3,c:3},
+"Basal Cell Carcinoma":{h:0,d:0,w:0,m:2,c:3},
+// Gynaecology
+"Vaginal Candidiasis":{h:0,d:3,w:2,m:1,c:0},"Bacterial Vaginosis":{h:0,d:2,w:3,m:2,c:1},
+"Dysmenorrhoea":{h:3,d:3,w:0,m:0,c:3},"Menorrhagia":{h:0,d:0,w:0,m:3,c:3},
+"Pelvic Inflammatory Disease":{h:1,d:3,w:2,m:0,c:0},"Menopause / HRT":{h:0,d:0,w:1,m:3,c:3},
+"Uterine Fibroids":{h:0,d:0,w:0,m:3,c:3},"Ectopic Pregnancy":{h:3,d:3,w:1,m:0,c:0},
+// Infectious Disease
+"Dengue Fever":{h:1,d:3,w:2,m:0,c:0},"Malaria":{h:1,d:3,w:2,m:0,c:0},
+"Typhoid Fever":{h:0,d:2,w:3,m:1,c:0},"Tuberculosis (Pulmonary)":{h:0,d:0,w:2,m:3,c:3},
+"Chickenpox (Varicella)":{h:0,d:3,w:2,m:0,c:0},"Influenza":{h:1,d:3,w:2,m:0,c:0},
+"COVID-19":{h:1,d:3,w:2,m:1,c:0},"HIV Infection":{h:0,d:0,w:1,m:2,c:3},
+// Metabolic
+"Hyperlipidaemia":{h:0,d:0,w:0,m:0,c:3},
+// Ophthalmology
+"Conjunctivitis":{h:1,d:3,w:2,m:0,c:0},"Acute Angle-Closure Glaucoma":{h:3,d:2,w:0,m:0,c:0},
+"Anterior Uveitis":{h:2,d:3,w:2,m:0,c:0},"Corneal Abrasion":{h:3,d:3,w:0,m:0,c:0},
+// Paediatrics
+"Croup":{h:2,d:3,w:1,m:0,c:0},"Bronchiolitis":{h:1,d:3,w:2,m:0,c:0},"Febrile Seizures":{h:3,d:1,w:0,m:0,c:0},
+};
+
+const DUR_LABELS={h:"Hours",d:"1-7 days",w:"1-4 weeks",m:"1-3 months",c:"3+ months"};
+
+function $(id){return document.getElementById(id)}
+function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function runDiagnosis(){
+  if(!dxSel.length)return;
+  const scores=DISEASES.map(d=>{let score=0,matches=[];
+    dxSel.forEach(s=>{if(d.symptoms[s]){score+=d.symptoms[s];matches.push(s+' (+'+d.symptoms[s]+')');}});
+    const total=Object.values(d.symptoms).reduce((a,b)=>a+b,0);
+    let pct=total?Math.round(score/total*100):0;
+    const flagged=d.redFlags.filter(f=>dxSel.includes(f));
+    // Duration adjustment
+    let durMatch=null;
+    if(dxDur!=='any' && DUR[d.name]){
+      const durScore=DUR[d.name][dxDur]||0;
+      durMatch=durScore;
+      if(durScore===3) score=Math.round(score*1.4); // strong boost
+      else if(durScore===2) score=Math.round(score*1.15); // mild boost
+      else if(durScore===1) score=Math.round(score*0.7); // mild penalty
+      else if(durScore===0) score=Math.round(score*0.3); // strong penalty
+      pct=total?Math.min(99,Math.round(score/total*100)):0;
+    }
+    return{...d,score,pct,matches,flagged,durMatch};
+  }).filter(d=>d.score>0).sort((a,b)=>b.score-a.score).slice(0,8);
+  dxResult=scores;render();
+}
+
+function runDrugCheck(){
+  if(drugSel.length<1){drugResult={interactions:[],drugs:drugSel.map(n=>DRUGS.find(d=>d.name===n))};render();return;}
+  const found=[];
+  for(let i=0;i<drugSel.length;i++)for(let j=i+1;j<drugSel.length;j++){
+    const a=drugSel[i],b=drugSel[j];
+    INTERACTIONS.forEach(ix=>{if((ix[0]===a&&ix[1]===b)||(ix[0]===b&&ix[1]===a))found.push({drugA:ix[0],drugB:ix[1],severity:ix[2],mechanism:ix[3],action:ix[4]});});
+  }
+  drugResult={interactions:found.sort((a,b)=>a.severity==='major'?-1:b.severity==='major'?1:0),drugs:drugSel.map(n=>DRUGS.find(d=>d.name===n))};render();
+}
+
+function generateEHR(){
+  const today=new Date().toLocaleDateString('en-IN');
+  let n=`CLINICAL CONSULTATION NOTE\nDate: ${today}\nClinic: General Practice\n\nDEMOGRAPHICS: ${dxAge?dxAge+'y':'?'} ${dxSex}\n\nPRESENTING SYMPTOMS:\n${dxSel.length?dxSel.join(', '):'Not recorded'}\nDuration: ${dxDur==='any'?'Not specified':DUR_LABELS[dxDur]||dxDur}\n`;
+  if(dxResult&&dxResult.length){
+    n+=`\nASSESSMENT:\n`;
+    dxResult.slice(0,3).forEach((d,i)=>{n+=`${i+1}. ${d.name} (${d.pct}% match)\n   Supporting: ${d.matches.join(', ')}\n`;if(d.flagged.length)n+=`   RED FLAGS: ${d.flagged.join(', ')}\n`;});
+    n+=`\nPLAN:\nInvestigations: ${dxResult[0].investigations}\nTreatment: ${dxResult[0].firstLine}\n`;
+  }
+  n+=`\n--- Decision support only. Clinical judgement takes precedence. ---\n--- Generated by CDSS by Dr. Ankit Lokare · © 2026 ---`;
+  ehrData=n;render();
+}
+
+// ─── Rendering ───────────────────────────────────────────────────────
+const MODS=[{id:'dx',l:'Diagnostic Aid',ic:'🩺',d:'Select symptoms → weighted differentials + BNF treatment ('+DISEASES.length+' conditions, '+SYMPTOMS.length+' symptoms)'},
+{id:'drugs',l:'Drug Interactions',ic:'💊',d:'Interaction checker + BNF doses ('+DRUGS.length+' drugs, '+INTERACTIONS.length+' interaction pairs)'},
+{id:'risk',l:'Risk Calculators',ic:'📊',d:'Wells, CURB-65, CHA₂DS₂-VASc, HEART, qSOFA, HAS-BLED'},
+{id:'guide',l:'Guidelines + BNF',ic:'📋',d:'Select condition → BNF treatment protocols ('+DISEASES.length+' conditions)'}];
+
+function switchMod(m){mod=m;render();}
+function dxToggle(s){if(dxSel.includes(s))dxSel=dxSel.filter(x=>x!==s);else dxSel.push(s);dxResult=null;render();}
+function dxSetSearch(v){dxSearch=v;render();}
+function drugToggle(n){if(drugSel.includes(n))drugSel=drugSel.filter(x=>x!==n);else drugSel.push(n);drugResult=null;render();}
+function drugSetSearch(v){drugSearch=v;render();}
+function riskSelect(k){riskSel=k;riskChk={};render();}
+function riskToggle(i){riskChk[i]=!riskChk[i];render();}
+function guideSelect(i){guideSel=guideSel===i?null:i;render();}
+
+function render(){
+  $('mt').innerHTML=MODS.map(m=>`<button class="mtab${mod===m.id?' a':''}" onclick="switchMod('${m.id}')"><span style="font-size:15px">${m.ic}</span> ${m.l}</button>`).join('');
+  $('md').textContent=MODS.find(m=>m.id===mod).ic+' '+MODS.find(m=>m.id===mod).d;
+  if(mod==='dx')renderDx();else if(mod==='drugs')renderDrugs();else if(mod==='risk')renderRisk();else renderGuide();
+}
+
+function renderDx(){
+  const filtered=SYMPTOMS.filter(s=>s.toLowerCase().includes(dxSearch.toLowerCase()));
+  let o=`<div class="demo-bar g2" style="margin-bottom:12px"><div class="fld"><label class="lbl">Age</label><input type="number" value="${h(dxAge)}" onchange="dxAge=this.value" placeholder="yrs" style="height:40px"></div><div class="fld"><label class="lbl">Sex</label><select onchange="dxSex=this.value" style="height:40px"><option${dxSex==='Male'?' selected':''}>Male</option><option${dxSex==='Female'?' selected':''}>Female</option><option${dxSex==='Other'?' selected':''}>Other</option></select></div></div>`;
+
+  // Duration selector
+  o+=`<div class="fld"><label class="lbl">Symptom duration <span class="lsub">improves accuracy — how long have the main symptoms been present?</span></label>`;
+  o+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px">`;
+  const durOpts=[{k:'any',l:'Any / Unknown'},{k:'h',l:'Hours'},{k:'d',l:'1-7 days'},{k:'w',l:'1-4 weeks'},{k:'m',l:'1-3 months'},{k:'c',l:'3+ months (chronic)'}];
+  durOpts.forEach(dt=>{
+    o+=`<button class="tag${dxDur===dt.k?' on':''}" onclick="dxDur='${dt.k}';dxResult=null;render()">${dt.l}</button>`;
+  });
+  o+=`</div></div>`;
+
+  if(dxSel.length){o+=`<div style="margin-bottom:12px">`;dxSel.forEach(s=>{o+=`<span class="chip" style="background:#ECFEFF;color:#155E75;border:1px solid #A5F3FC">${s} <span class="x" onclick="dxToggle('${h(s)}')">&times;</span></span>`;});o+=`</div>`;}
+  o+=`<div class="fld"><label class="lbl">Search & select symptoms <span class="lsub">${dxSel.length} selected · ${SYMPTOMS.length} available</span></label><input type="text" value="${h(dxSearch)}" oninput="dxSetSearch(this.value)" placeholder="Type to filter... e.g. fatigue, cough, rash" style="height:40px"></div>`;
+  o+=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;max-height:220px;overflow-y:auto;padding:8px;background:#FAFBFC;border-radius:10px;border:1px solid var(--bdr)">`;
+  filtered.forEach(s=>{o+=`<button class="tag${dxSel.includes(s)?' on':''}" onclick="dxToggle('${h(s)}')">${s}</button>`;});o+=`</div>`;
+  o+=`<div class="action-row" style="display:flex;gap:10px;margin-bottom:16px"><button class="btn bp" onclick="runDiagnosis()" ${dxSel.length<1?'disabled':''}>Analyse (${dxSel.length} symptoms${dxDur!=='any'?' · '+durOpts.find(x=>x.k===dxDur).l:''})</button><button class="btn bo" onclick="generateEHR()" ${!dxResult?'disabled':''}>Generate EHR Note</button></div>`;
+  if(dxResult){
+    o+=`<div style="font-weight:700;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:var(--grn)"></span>Differential Diagnoses (${dxResult.length} matches)${dxDur!=='any'?' · filtered by <strong>'+DUR_LABELS[dxDur]+'</strong>':''} <span class="brand-badge" style="margin-left:auto">CDSS by Dr. Ankit Lokare</span></div>`;
+    dxResult.forEach((d,i)=>{const bw=Math.max(d.pct,8);
+      // Duration indicator
+      let durTag='';
+      if(d.durMatch!==null){
+        if(d.durMatch===3) durTag='<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:#ECFDF5;color:#065F46;margin-left:6px">⏱ Classic duration</span>';
+        else if(d.durMatch===2) durTag='<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:#FFFBEB;color:#92400E;margin-left:6px">⏱ Possible duration</span>';
+        else if(d.durMatch===1) durTag='<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:#FEF2F2;color:#991B1B;margin-left:6px">⏱ Unusual duration</span>';
+        else if(d.durMatch===0) durTag='<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:#FEF2F2;color:#991B1B;margin-left:6px">⏱ Atypical duration</span>';
+      }
+      o+=`<div class="res" style="border-left:4px solid ${i===0?'var(--pri)':i<3?'var(--acc)':'var(--bdr)'};margin-top:${i?10:0}px">`;
+      o+=`<div style="display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:8px"><span style="font-weight:700;font-size:15px">${i+1}. ${d.name}${durTag}</span><span class="pill" style="background:${i===0?'#ECFEFF':i<3?'#FFFBEB':'#F1F3F5'};color:${i===0?'#155E75':i<3?'#92400E':'var(--mid)'}">${d.pct}% match</span></div>`;
+      o+=`<div style="background:#F1F3F5;border-radius:4px;height:6px;margin-bottom:10px"><div style="background:${i===0?'var(--pri)':'var(--acc)'};height:6px;border-radius:4px;width:${bw}%"></div></div>`;
+      o+=`<div style="font-size:13px;color:var(--mid);margin-bottom:6px"><strong>Matching:</strong> ${d.matches.join(', ')}</div>`;
+      if(d.flagged.length)o+=`<div style="font-size:13px;color:var(--red);margin-bottom:6px">🚩 <strong>Red flags:</strong> ${d.flagged.join(', ')}</div>`;
+      o+=`<div style="font-size:13px;color:var(--mid);margin-bottom:6px"><strong>Category:</strong> ${d.category}</div>`;
+      o+=`<div style="background:#F8FAFC;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:6px"><strong>BNF First-line:</strong> ${d.firstLine}</div>`;
+      o+=`<div style="font-size:13px;color:var(--mid)"><strong>Investigations:</strong> ${d.investigations}</div></div>`;
+    });
+  }
+  if(ehrData){o+=`<div style="margin-top:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-weight:700;font-size:15px">📋 EHR Note</span><button class="btn bp" style="padding:8px 18px;font-size:12px" onclick="navigator.clipboard.writeText(ehrData);this.textContent='✓ Copied!';setTimeout(()=>this.textContent='Copy to Clipboard',2000)">Copy to Clipboard</button></div><div class="ehr">${h(ehrData)}</div></div>`;}
+  $('app').innerHTML=o;
+}
+
+function renderDrugs(){
+  const filtered=DRUGS.filter(d=>d.name.toLowerCase().includes(drugSearch.toLowerCase())||d.cat.toLowerCase().includes(drugSearch.toLowerCase()));
+  let o='';
+  if(drugSel.length){o+=`<div style="margin-bottom:12px">`;drugSel.forEach(n=>{o+=`<span class="chip" style="background:#F5F3FF;color:#5B21B6;border:1px solid #C4B5FD">${n} <span class="x" onclick="drugToggle('${h(n)}')">&times;</span></span>`;});o+=`</div>`;}
+  o+=`<div class="fld"><label class="lbl">Search & select drugs <span class="lsub">${drugSel.length} selected · ${DRUGS.length} in database</span></label><input type="text" value="${h(drugSearch)}" oninput="drugSetSearch(this.value)" placeholder="Type drug name... e.g. ramipril, metformin, sertraline" style="height:40px"></div>`;
+  o+=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;max-height:220px;overflow-y:auto;padding:8px;background:#FAFBFC;border-radius:10px;border:1px solid var(--bdr)">`;
+  filtered.forEach(d=>{o+=`<button class="tag${drugSel.includes(d.name)?' on':''}" onclick="drugToggle('${h(d.name)}')" title="${h(d.cat)}">${d.name}</button>`;});o+=`</div>`;
+  o+=`<button class="btn bpu" onclick="runDrugCheck()" ${drugSel.length<1?'disabled':''}>Check Interactions (${drugSel.length} drugs)</button>`;
+  if(drugResult){
+    o+=`<div style="font-weight:700;font-size:15px;margin:18px 0 10px;display:flex;align-items:center">BNF Prescribing Summary <span class="brand-badge" style="margin-left:auto">CDSS by Dr. Ankit Lokare</span></div>`;
+    drugResult.drugs.forEach(d=>{if(!d)return;o+=`<div class="res" style="border-left:4px solid var(--purple);margin-bottom:8px"><div style="font-weight:700;margin-bottom:4px">${d.name} <span style="font-weight:400;color:var(--lt);font-size:12px">${d.cat}</span></div><div style="font-size:13px;margin-bottom:4px"><strong>BNF dose:</strong> ${d.bnf}</div><div style="font-size:13px;color:var(--mid)"><strong>Cautions:</strong> ${d.cautions}</div></div>`;});
+    if(drugResult.interactions.length){
+      o+=`<div style="font-weight:700;font-size:15px;margin:18px 0 10px">Interactions Found (${drugResult.interactions.length})</div>`;
+      drugResult.interactions.forEach(ix=>{const cls=ix.severity==='major'?'sev-major':ix.severity==='moderate'?'sev-mod':'sev-minor';const icon=ix.severity==='major'?'🔴':ix.severity==='moderate'?'🟡':'🟢';
+        o+=`<div class="res ${cls}" style="border-left:4px solid ${ix.severity==='major'?'var(--red)':ix.severity==='moderate'?'var(--acc)':'var(--grn)'};margin-bottom:8px"><div style="font-weight:700;margin-bottom:4px">${icon} ${ix.drugA} + ${ix.drugB} <span class="pill" style="background:inherit">${ix.severity.toUpperCase()}</span></div><div style="font-size:13px;margin-bottom:4px"><strong>Mechanism:</strong> ${ix.mechanism}</div><div style="font-size:13px"><strong>Action:</strong> ${ix.action}</div></div>`;});
+    }else if(drugSel.length>=2){o+=`<div class="res" style="border-left:4px solid var(--grn);margin-top:16px"><div style="color:var(--grn);font-weight:700">✅ No interactions found</div><div style="font-size:13px;color:var(--mid);margin-top:4px">Database covers common outpatient interactions. Verify with BNF/pharmacist for full coverage.</div></div>`;}
+  }
+  $('app').innerHTML=o;
+}
+
+function renderRisk(){
+  const calc=CALCS[riskSel];const total=calc.items.reduce((s,c,i)=>s+(riskChk[i]?c.s:0),0);const interp=calc.interp(total);
+  let o=`<div style="margin-bottom:16px">${Object.entries(CALCS).map(([k,v])=>`<button class="tag${riskSel===k?' on':''}" onclick="riskSelect('${k}')">${v.name}</button>`).join('')}</div>`;
+  o+=`<div style="color:var(--lt);font-size:13px;font-style:italic;margin-bottom:12px">${calc.desc}</div>`;
+  calc.items.forEach((c,i)=>{o+=`<label class="calc-item${riskChk[i]?' on':''}" onclick="riskToggle(${i})"><input type="checkbox" ${riskChk[i]?'checked':''} style="accent-color:var(--pri);width:17px;height:17px;cursor:pointer"><span style="flex:1">${c.l}</span><span style="font-weight:700;font-size:13px;color:${c.s>0?'var(--pri)':'var(--red)'};min-width:28px;text-align:right">${c.s>0?'+'+c.s:c.s}</span></label>`;});
+  o+=`<div style="margin-top:18px;padding:18px;border-radius:12px;background:${interp.c}11;border:2px solid ${interp.c};display:flex;align-items:center;gap:18px"><div style="width:58px;height:58px;border-radius:50%;background:${interp.c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;flex-shrink:0">${total}</div><div><div style="font-weight:700;font-size:17px;color:${interp.c};margin-bottom:3px">${interp.r} Risk</div><div style="font-size:14px;color:var(--mid);line-height:1.5">${interp.d}</div></div></div>`;
+  o+=`<div style="margin-top:12px;padding:10px 14px;background:#F8FAFC;border-radius:8px;border:1px solid var(--bdr);font-size:12px;color:var(--lt);display:flex;align-items:center;justify-content:space-between">✅ Works fully offline — no internet or API required. <span class="brand-badge">CDSS by Dr. Ankit Lokare</span></div>`;
+  $('app').innerHTML=o;
+}
+
+function renderGuide(){
+  let o=`<div class="fld"><label class="lbl">Select condition <span class="lsub">${DISEASES.length} conditions across ${[...new Set(DISEASES.map(d=>d.category))].length} specialties</span></label></div>`;
+  const cats={};DISEASES.forEach((d,i)=>{if(!cats[d.category])cats[d.category]=[];cats[d.category].push({...d,idx:i});});
+  Object.keys(cats).sort().forEach(cat=>{
+    o+=`<div class="cathead">${cat} (${cats[cat].length})</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
+    cats[cat].forEach(d=>{o+=`<button class="tag${guideSel===d.idx?' on':''}" onclick="guideSelect(${d.idx})">${d.name}</button>`;});o+=`</div>`;
+  });
+  if(guideSel!==null){const d=DISEASES[guideSel];
+    o+=`<div class="res" style="border-left:4px solid var(--grn);margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-weight:700;font-size:17px">${d.name}</span><span class="brand-badge">CDSS by Dr. Ankit Lokare</span></div><div style="font-size:13px;color:var(--lt);margin-bottom:12px">${d.category}</div>`;
+    o+=`<div style="background:#ECFDF5;padding:12px 16px;border-radius:10px;margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:#065F46;margin-bottom:4px">BNF First-Line Treatment</div><div style="font-size:14px;line-height:1.7;color:#064E3B">${d.firstLine}</div></div>`;
+    o+=`<div style="background:#F8FAFC;padding:12px 16px;border-radius:10px;margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:var(--mid);margin-bottom:4px">Investigations</div><div style="font-size:14px;line-height:1.7">${d.investigations}</div></div>`;
+    o+=`<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;color:var(--mid);margin-bottom:4px">Key Symptoms</div><div style="display:flex;flex-wrap:wrap;gap:4px">`;
+    Object.entries(d.symptoms).sort((a,b)=>b[1]-a[1]).forEach(([s,w])=>{o+=`<span class="chip" style="background:${w===3?'#ECFEFF':w===2?'#FFFBEB':'#F1F3F5'};color:${w===3?'#155E75':w===2?'#92400E':'var(--mid)'};border:1px solid ${w===3?'#A5F3FC':w===2?'#FDE68A':'var(--bdr)'}">${s} <span style="opacity:.5">+${w}</span></span>`;});o+=`</div></div>`;
+    if(d.redFlags.length)o+=`<div><div style="font-weight:700;font-size:13px;color:var(--red);margin-bottom:4px">🚩 Red Flags</div><div style="font-size:14px;color:var(--red)">${d.redFlags.join(', ')}</div></div>`;
+    o+=`</div>`;
+  }
+  $('app').innerHTML=o;
+}
+
+render();
+</script>
+</body>
+</html>
